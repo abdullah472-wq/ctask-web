@@ -12,6 +12,7 @@ interface Task {
   total_slots: number;
   completed_slots: number;
   proof_instruction: string;
+  category: string;
   is_premium?: boolean;
 }
 
