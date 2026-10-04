@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Facebook, Twitter, Linkedin, Youtube, Instagram } from 'lucide-react';
+import { FaFacebook, FaInstagram, FaYoutube, FaLinkedin } from 'react-icons/fa';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -56,16 +56,16 @@ export function Footer() {
           <p>&copy; {currentYear} Ctask Platform. All rights reserved.</p>
           <div className="flex gap-6">
             <a href="#" className="opacity-50 hover:opacity-100 hover:text-brand-cyan transition-all cursor-pointer">
-              <Facebook className="w-5 h-5" />
+              <FaFacebook className="w-5 h-5" />
             </a>
             <a href="#" className="opacity-50 hover:opacity-100 hover:text-brand-cyan transition-all cursor-pointer">
-              <Instagram className="w-5 h-5" />
+              <FaInstagram className="w-5 h-5" />
             </a>
             <a href="#" className="opacity-50 hover:opacity-100 hover:text-brand-cyan transition-all cursor-pointer">
-              <Youtube className="w-5 h-5" />
+              <FaYoutube className="w-5 h-5" />
             </a>
             <a href="#" className="opacity-50 hover:opacity-100 hover:text-brand-cyan transition-all cursor-pointer">
-              <Linkedin className="w-5 h-5" />
+              <FaLinkedin className="w-5 h-5" />
             </a>
           </div>
         </div>

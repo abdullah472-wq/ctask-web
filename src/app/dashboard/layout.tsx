@@ -152,8 +152,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { label: 'Deposit (Advertiser)', href: '/dashboard/deposit', icon: Wallet },
     { label: 'Post Task', href: '/dashboard/create-task', icon: CheckSquare },
     { label: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
-    { label: 'Verify Identity', href: '/dashboard/verify', icon: ShieldCheck },
+
     { label: 'Upgrade to Premium', href: '/dashboard/upgrade', icon: Crown },
+    { label: 'Edit Profile', href: '/dashboard/profile', icon: User },
     { label: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 

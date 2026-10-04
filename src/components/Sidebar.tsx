@@ -2,9 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LucideIcon, Moon, Sun } from 'lucide-react';
-import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { LucideIcon } from 'lucide-react';
 
 interface SidebarProps {
   title: string;
@@ -19,12 +17,6 @@ interface SidebarProps {
 
 export function Sidebar({ title, links, isOpen, setIsOpen }: SidebarProps) {
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
     <>
@@ -62,10 +54,10 @@ export function Sidebar({ title, links, isOpen, setIsOpen }: SidebarProps) {
             <Link
               key={link.href}
               href={link.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 isActive 
-                  ? 'bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20' 
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'
+                  ? 'bg-emerald-50 text-emerald-700 font-semibold dark:bg-emerald-500/15 dark:text-emerald-400' 
+                  : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/50'
               }`}
             >
               <link.icon className="w-5 h-5" />
@@ -75,27 +67,6 @@ export function Sidebar({ title, links, isOpen, setIsOpen }: SidebarProps) {
         })}
       </nav>
 
-      {/* Theme Toggle */}
-      <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-        {mounted && (
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors border border-transparent"
-          >
-            {theme === 'dark' ? (
-              <>
-                <Sun className="w-5 h-5 text-yellow-500" />
-                Light Mode
-              </>
-            ) : (
-              <>
-                <Moon className="w-5 h-5 text-brand-cyan" />
-                Dark Mode
-              </>
-            )}
-          </button>
-        )}
-      </div>
     </aside>
     </>
   );
