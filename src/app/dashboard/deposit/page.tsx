@@ -91,10 +91,10 @@ export default function DepositPage() {
                 name="payment_method"
                 value={formData.payment_method}
                 onChange={handleChange}
-                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-cyan transition-colors"
+                className="w-full bg-transparent dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-xl p-3 focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors"
               >
-                <option value="bKash">bKash</option>
-                <option value="Nagad">Nagad</option>
+                <option value="bKash" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">bKash</option>
+                <option value="Nagad" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Nagad</option>
               </select>
             </div>
 

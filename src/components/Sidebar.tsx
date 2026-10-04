@@ -13,9 +13,11 @@ interface SidebarProps {
     href: string;
     icon: LucideIcon;
   }[];
+  isOpen?: boolean;
+  setIsOpen?: (isOpen: boolean) => void;
 }
 
-export function Sidebar({ title, links }: SidebarProps) {
+export function Sidebar({ title, links, isOpen, setIsOpen }: SidebarProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -25,15 +27,33 @@ export function Sidebar({ title, links }: SidebarProps) {
   }, []);
 
   return (
-    <aside className="w-64 bg-white dark:bg-dark-card border-r border-slate-200 dark:border-slate-800 h-screen sticky top-0 flex flex-col hidden md:flex transition-colors">
-      <div className="h-20 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-cyan to-brand-emerald flex items-center justify-center font-bold text-white dark:text-dark-bg mr-3 shadow-sm">
-          C
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity"
+          onClick={() => setIsOpen?.(false)}
+        />
+      )}
+
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-dark-card border-r border-slate-200 dark:border-slate-800 h-screen flex flex-col transition-transform duration-300 md:translate-x-0 md:static ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-cyan to-brand-emerald flex items-center justify-center font-bold text-white dark:text-dark-bg mr-3 shadow-sm">
+              C
+            </div>
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-cyan to-brand-emerald">
+              {title}
+            </span>
+          </div>
+          {/* Mobile Close Button */}
+          <button 
+            className="md:hidden text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            onClick={() => setIsOpen?.(false)}
+          >
+            ✕
+          </button>
         </div>
-        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-cyan to-brand-emerald">
-          {title}
-        </span>
-      </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
         {links.map((link) => {
@@ -77,5 +97,6 @@ export function Sidebar({ title, links }: SidebarProps) {
         )}
       </div>
     </aside>
+    </>
   );
 }

@@ -96,7 +96,7 @@ export default function SubmissionsPage() {
                   <tr key={sub.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 font-medium">{sub.tasks?.title}</td>
                     <td className="px-6 py-4 text-brand-emerald font-bold">
-                      ${sub.tasks?.reward_amount?.toFixed(2)}
+                      {sub.tasks?.reward_amount?.toFixed(2)} ৳
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold border capitalize ${getStatusColor(sub.status)}`}>

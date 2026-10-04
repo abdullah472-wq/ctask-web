@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Upload, Loader2, Link as LinkIcon, FileText } from 'lucide-react';
 import { supabase } from '@/utils/supabase';
 
@@ -14,14 +14,51 @@ interface Task {
 interface SubmitProofModalProps {
   task: Task;
   userId: string;
+  userPlan?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function SubmitProofModal({ task, userId, onClose, onSuccess }: SubmitProofModalProps) {
+export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, onSuccess }: SubmitProofModalProps) {
   const [proofText, setProofText] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
+  const [checkingLimit, setCheckingLimit] = useState(true);
+
+  // Check earning limit for basic users
+  useEffect(() => {
+    checkLimit();
+  }, []);
+
+  const checkLimit = async () => {
+    if (userPlan === 'premium') {
+      setCheckingLimit(false);
+      return;
+    }
+
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { data, error } = await supabase
+      .from('task_submissions')
+      .select('status, tasks!inner(reward_amount)')
+      .eq('user_id', userId)
+      .eq('status', 'approved')
+      .gte('submitted_at', startOfMonth.toISOString());
+
+    if (!error && data) {
+      let total = 0;
+      data.forEach((sub: any) => {
+        total += sub.tasks.reward_amount || 0;
+      });
+      if (total >= 1000) {
+        setLimitReached(true);
+      }
+    }
+    setCheckingLimit(false);
+  };
 
   const handleSubmitProof = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,34 +139,59 @@ export function SubmitProofModal({ task, userId, onClose, onSuccess }: SubmitPro
             </p>
           </div>
 
-          <form id="proofForm" onSubmit={handleSubmitProof} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Proof Text</label>
-              <textarea
-                required
-                value={proofText}
-                onChange={e => setProofText(e.target.value)}
-                className="w-full bg-white/5 border border-slate-800 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-cyan transition-colors h-24 resize-none"
-                placeholder="Enter required text proof (username, email used, etc.)"
-              />
+          {checkingLimit ? (
+            <div className="flex justify-center p-8">
+              <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Screenshot Proof (Optional)</label>
-              <div className="relative border-2 border-dashed border-slate-800 rounded-xl p-6 text-center hover:border-brand-cyan/50 transition-colors bg-white/5">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={e => setProofFile(e.target.files?.[0] || null)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
-                <p className="text-sm text-slate-300">
-                  {proofFile ? proofFile.name : "Click or drag image to upload"}
-                </p>
+          ) : limitReached ? (
+            <div className="bg-red-500/10 border border-red-500/30 p-6 rounded-2xl text-center">
+              <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <X className="w-8 h-8" />
               </div>
+              <h4 className="text-xl font-bold text-red-500 mb-2">Monthly Limit Reached</h4>
+              <p className="text-slate-300 mb-4 text-sm">
+                You have reached your 1000 ৳ earning limit for this month on the Basic plan. Upgrade to Premium to unlock unlimited earnings!
+              </p>
+              <button
+                onClick={() => {
+                  onClose();
+                  window.location.href = '/dashboard/upgrade';
+                }}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-yellow-400 to-yellow-600 text-dark-bg font-bold w-full"
+              >
+                Upgrade to Premium
+              </button>
             </div>
-          </form>
+          ) : (
+            <form id="proofForm" onSubmit={handleSubmitProof} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Proof Text</label>
+                <textarea
+                  required
+                  value={proofText}
+                  onChange={e => setProofText(e.target.value)}
+                  className="w-full bg-white/5 border border-slate-800 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-cyan transition-colors h-24 resize-none"
+                  placeholder="Enter required text proof (username, email used, etc.)"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Screenshot Proof (Optional)</label>
+                <div className="relative border-2 border-dashed border-slate-800 rounded-xl p-6 text-center hover:border-brand-cyan/50 transition-colors bg-white/5">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => setProofFile(e.target.files?.[0] || null)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                  <p className="text-sm text-slate-300">
+                    {proofFile ? proofFile.name : "Click or drag image to upload"}
+                  </p>
+                </div>
+              </div>
+            </form>
+          )}
         </div>
         
         <div className="p-6 border-t border-slate-800 bg-white/5 flex justify-end gap-3">
@@ -143,7 +205,7 @@ export function SubmitProofModal({ task, userId, onClose, onSuccess }: SubmitPro
           <button
             type="submit"
             form="proofForm"
-            disabled={submitting}
+            disabled={submitting || checkingLimit || limitReached}
             className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-cyan to-brand-emerald text-dark-bg font-bold flex items-center gap-2 hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}

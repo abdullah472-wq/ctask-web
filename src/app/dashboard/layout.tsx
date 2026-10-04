@@ -15,7 +15,9 @@ import {
   Crown,
   Bell,
   Check,
-  Trophy
+  Trophy,
+  Menu,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
 import { Footer } from '@/components/Footer';
@@ -48,6 +50,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Notification State
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  
+  // Mobile Sidebar State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -140,6 +145,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sidebarLinks = [
     { label: 'Available Tasks', href: '/dashboard', icon: LayoutDashboard },
     { label: 'My Submissions', href: '/dashboard/submissions', icon: CheckSquare },
+    { label: 'Referrals & Downline', href: '/dashboard/referrals', icon: Users },
     { label: 'Wallet & Withdraw', href: '/dashboard/wallet', icon: Wallet },
     { label: 'Deposit (Advertiser)', href: '/dashboard/deposit', icon: Wallet },
     { label: 'Post Task', href: '/dashboard/create-task', icon: CheckSquare },
@@ -153,12 +159,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-slate-100 flex transition-colors">
-      <Sidebar title="Ctask" links={sidebarLinks} />
+      <Sidebar 
+        title="Ctask" 
+        links={sidebarLinks} 
+        isOpen={isSidebarOpen} 
+        setIsOpen={setIsSidebarOpen} 
+      />
 
       <div className="flex-1 flex flex-col min-h-screen max-w-full relative">
         {/* Top Header */}
-        <header className="h-20 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-dark-card/50 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between px-8 transition-colors">
+        <header className="h-20 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-dark-card/50 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between px-4 md:px-8 transition-colors">
           <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
             <h1 className="font-bold text-lg hidden md:block">Worker Dashboard</h1>
           </div>
           

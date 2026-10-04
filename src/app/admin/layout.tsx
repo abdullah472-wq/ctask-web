@@ -14,13 +14,15 @@ import {
   Loader2,
   ShieldAlert,
   CreditCard,
-  Users
+  Users,
+  Menu
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     checkAdmin();
@@ -80,12 +82,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-slate-100 flex transition-colors">
-      <Sidebar title="Ctask Admin" links={sidebarLinks} />
+      <Sidebar 
+        title="Ctask Admin" 
+        links={sidebarLinks} 
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
+      />
 
       <div className="flex-1 flex flex-col min-h-screen max-w-full">
         {/* Top Header */}
-        <header className="h-20 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-dark-card/50 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between px-8 transition-colors">
+        <header className="h-20 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-dark-card/50 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between px-4 md:px-8 transition-colors">
           <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
             <h1 className="font-bold text-lg text-brand-cyan hidden md:block">Admin Panel</h1>
           </div>
           

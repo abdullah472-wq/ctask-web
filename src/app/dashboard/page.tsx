@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/utils/supabase';
-import { Loader2, CheckCircle, Gift, Filter, ArrowDownUp, Crown } from 'lucide-react';
+import { Loader2, CheckCircle, Gift, Filter, ArrowDownUp, Crown, Copy, Users } from 'lucide-react';
 import { TaskCard } from '@/components/TaskCard';
 import { SubmitProofModal } from '@/components/SubmitProofModal';
+import { PremiumLockModal } from '@/components/PremiumLockModal';
 
 interface Task {
   id: string;
@@ -15,12 +16,13 @@ interface Task {
   total_slots: number;
   completed_slots: number;
   proof_instruction: string;
-  category: string;
+  category_id?: string;
+  subcategory_id?: string;
+  category?: { name: string };
+  subcategory?: { name: string };
   is_premium?: boolean;
   created_at?: string;
 }
-
-const CATEGORIES = ['All', 'YouTube', 'Facebook', 'TikTok', 'Sign Up', 'App Download', 'Others'];
 
 export default function DashboardTasksPage() {
   const [loading, setLoading] = useState(true);
@@ -28,10 +30,12 @@ export default function DashboardTasksPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showLockModal, setShowLockModal] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
   // Filters State
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [categories, setCategories] = useState<any[]>([]);
   const [sortBy, setSortBy] = useState('newest'); // 'newest', 'reward_desc', 'reward_asc'
   const [premiumOnly, setPremiumOnly] = useState(false);
 
@@ -44,9 +48,15 @@ export default function DashboardTasksPage() {
     if (session) {
       setUserId(session.user.id);
       await fetchProfile(session.user.id);
+      await fetchCategories();
       await fetchTasks();
     }
     setLoading(false);
+  };
+
+  const fetchCategories = async () => {
+    const { data } = await supabase.from('task_categories').select('*').order('name');
+    if (data) setCategories(data);
   };
 
   const fetchProfile = async (uid: string) => {
@@ -62,7 +72,7 @@ export default function DashboardTasksPage() {
   const fetchTasks = async () => {
     const { data: tasksData, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select('*, category:task_categories(name), subcategory:task_subcategories(name)')
       .eq('is_active', true);
       
     if (error) {
@@ -98,7 +108,7 @@ export default function DashboardTasksPage() {
 
     // 1. Filter by Category
     if (categoryFilter !== 'All') {
-      result = result.filter(t => t.category === categoryFilter);
+      result = result.filter(t => t.category_id === categoryFilter);
     }
 
     // 2. Filter Premium Only
@@ -159,6 +169,53 @@ export default function DashboardTasksPage() {
         </button>
       </div>
 
+      {/* Referral Card */}
+      <div className="mb-10 bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-brand-cyan/10 flex items-center justify-center text-brand-cyan">
+            <Users className="w-8 h-8" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Invite & Earn 20 ৳</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
+              Share your referral code. When a friend signs up, you get 20 ৳ instantly.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex-1 md:w-64 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 flex items-center justify-between">
+            <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+              {userProfile?.referral_code || 'Loading...'}
+            </span>
+            <button 
+              onClick={() => {
+                if (userProfile?.referral_code) {
+                  navigator.clipboard.writeText(userProfile.referral_code);
+                  alert('Referral code copied!');
+                }
+              }}
+              className="text-slate-400 hover:text-brand-cyan transition-colors"
+              title="Copy Code"
+            >
+              <Copy className="w-5 h-5" />
+            </button>
+          </div>
+          <button 
+            onClick={() => {
+              if (userProfile?.referral_code) {
+                const link = `${window.location.origin}/auth?ref=${userProfile.referral_code}`;
+                navigator.clipboard.writeText(link);
+                alert('Invite link copied!');
+              }
+            }}
+            className="px-6 py-3 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold hover:opacity-90 transition-opacity whitespace-nowrap"
+          >
+            Copy Link
+          </button>
+        </div>
+      </div>
+
       <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-2xl font-bold mb-2">Available Tasks</h1>
@@ -173,11 +230,11 @@ export default function DashboardTasksPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-transparent text-sm font-medium focus:outline-none text-slate-700 dark:text-slate-200 cursor-pointer"
+              className="bg-transparent dark:bg-[#0f172a] text-sm font-medium focus:outline-none text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-700 focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] cursor-pointer rounded"
             >
-              <option value="newest">Newest First</option>
-              <option value="reward_desc">Reward: High to Low</option>
-              <option value="reward_asc">Reward: Low to High</option>
+              <option value="newest" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Newest First</option>
+              <option value="reward_desc" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Reward: High to Low</option>
+              <option value="reward_asc" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Reward: Low to High</option>
             </select>
           </div>
 
@@ -193,24 +250,21 @@ export default function DashboardTasksPage() {
         </div>
       </div>
 
-      {/* Categories Scrollable Pills */}
-      <div className="mb-8 flex items-center gap-3 overflow-x-auto pb-2 custom-scrollbar">
+      {/* Categories Dropdown Filter */}
+      <div className="mb-8 flex items-center gap-3">
         <div className="flex items-center justify-center p-2 rounded-xl bg-brand-cyan/10 text-brand-cyan shrink-0">
           <Filter className="w-5 h-5" />
         </div>
-        {CATEGORIES.map(category => (
-          <button
-            key={category}
-            onClick={() => setCategoryFilter(category)}
-            className={`px-5 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-colors shrink-0 ${
-              categoryFilter === category 
-                ? 'bg-slate-900 text-white dark:bg-brand-cyan dark:text-dark-bg' 
-                : 'bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-brand-cyan/50 hover:text-brand-cyan'
-            }`}
-          >
-            {category}
-          </button>
-        ))}
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="w-full max-w-xs bg-transparent dark:bg-[#0f172a] text-sm font-medium text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] cursor-pointer"
+        >
+          <option value="All" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">All Categories</option>
+          {categories.map(c => (
+            <option key={c.id} value={c.id} className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">{c.name}</option>
+          ))}
+        </select>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -225,6 +279,7 @@ export default function DashboardTasksPage() {
               key={task.id} 
               task={task} 
               onSelect={setSelectedTask} 
+              onLockedClick={() => setShowLockModal(true)}
               userPlan={userProfile?.plan_type || 'basic'}
             />
           ))
@@ -241,6 +296,10 @@ export default function DashboardTasksPage() {
             fetchTasks(); // refresh data
           }}
         />
+      )}
+
+      {showLockModal && (
+        <PremiumLockModal onClose={() => setShowLockModal(false)} />
       )}
     </>
   );

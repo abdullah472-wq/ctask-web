@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Loader2, PlusCircle, Crown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -15,9 +15,37 @@ export default function CreateTaskPage() {
     reward_amount: '',
     total_slots: '',
     proof_instruction: '',
-    category: 'Others',
+    category_id: '',
+    subcategory_id: '',
     is_premium: false,
   });
+
+  const [categories, setCategories] = useState<any[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data } = await supabase.from('task_categories').select('*').order('name');
+      if (data) setCategories(data);
+    };
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      if (!formData.category_id) {
+        setSubcategories([]);
+        return;
+      }
+      const { data } = await supabase
+        .from('task_subcategories')
+        .select('*')
+        .eq('category_id', formData.category_id)
+        .order('name');
+      if (data) setSubcategories(data);
+    };
+    fetchSubcategories();
+  }, [formData.category_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +61,8 @@ export default function CreateTaskPage() {
         total_slots: Number(formData.total_slots),
         completed_slots: 0,
         proof_instruction: formData.proof_instruction,
-        category: formData.category,
+        category_id: formData.category_id,
+        subcategory_id: formData.subcategory_id,
         is_premium: formData.is_premium,
         is_active: true
       });
@@ -79,21 +108,39 @@ export default function CreateTaskPage() {
               </label>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Category</label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-cyan transition-colors"
-              >
-                <option value="Others">Others</option>
-                <option value="YouTube">YouTube</option>
-                <option value="Facebook">Facebook</option>
-                <option value="TikTok">TikTok</option>
-                <option value="Sign Up">Sign Up</option>
-                <option value="App Download">App Download</option>
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Category</label>
+                <select
+                  name="category_id"
+                  value={formData.category_id}
+                  onChange={handleChange}
+                  required
+                  className="w-full bg-transparent dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-xl p-3 focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors"
+                >
+                  <option value="" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Select Category</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id} className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Subcategory</label>
+                <select
+                  name="subcategory_id"
+                  value={formData.subcategory_id}
+                  onChange={handleChange}
+                  required
+                  disabled={!formData.category_id}
+                  className="w-full bg-transparent dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-xl p-3 focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors disabled:opacity-50"
+                >
+                  <option value="" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Select Subcategory</option>
+                  {subcategories.map(sc => (
+                    <option key={sc.id} value={sc.id} className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">{sc.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div>

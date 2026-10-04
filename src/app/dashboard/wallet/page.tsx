@@ -54,7 +54,7 @@ export default function WalletPage() {
       alert("Insufficient balance!");
       return;
     }
-    alert(`Withdrawal request for $${amount} via ${method} sent successfully! (Mocked)`);
+    alert(`Withdrawal request for ${amount} ৳ via ${method} sent successfully! (Mocked)`);
     setAmount('');
     setAccountNumber('');
   };
@@ -74,7 +74,7 @@ export default function WalletPage() {
         <div className="bg-[#0f172a] border border-[#1e293b] p-4 rounded-xl shadow-xl">
           <p className="text-slate-300 font-bold mb-2">{label}</p>
           <p className="text-sm text-brand-cyan font-bold">
-            Balance: ${payload[0].value.toFixed(2)}
+            Balance: {payload[0].value.toFixed(2)} ৳
           </p>
         </div>
       );
@@ -96,8 +96,8 @@ export default function WalletPage() {
             <Wallet className="w-32 h-32" />
           </div>
           <p className="text-brand-cyan font-medium mb-2 uppercase tracking-wider text-sm">Available Balance</p>
-          <h2 className="text-5xl font-bold text-white mb-2">${balance.toFixed(2)}</h2>
-          <p className="text-slate-300 text-sm">Minimum withdrawal is $5.00</p>
+          <h2 className="text-5xl font-bold text-white mb-2">{balance.toFixed(2)} ৳</h2>
+          <p className="text-slate-300 text-sm">Minimum withdrawal is 100 ৳</p>
         </div>
 
         {/* Withdraw Form */}
@@ -108,17 +108,17 @@ export default function WalletPage() {
           <form onSubmit={handleWithdraw} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Amount ($)</label>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Amount (৳)</label>
                 <input 
                   type="number" 
-                  min="5" 
+                  min="100" 
                   step="0.01" 
                   max={balance}
                   required
                   value={amount}
                   onChange={e => setAmount(e.target.value)}
                   className="w-full bg-white/5 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-brand-cyan transition-colors"
-                  placeholder="5.00"
+                  placeholder="100.00"
                 />
               </div>
               <div>
@@ -126,11 +126,11 @@ export default function WalletPage() {
                 <select 
                   value={method}
                   onChange={e => setMethod(e.target.value)}
-                  className="w-full bg-white/5 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-brand-cyan transition-colors appearance-none"
+                  className="w-full bg-transparent dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-xl p-3 focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors appearance-none"
                 >
-                  <option value="bKash">bKash</option>
-                  <option value="Nagad">Nagad</option>
-                  <option value="Binance Pay">Binance Pay (USDT)</option>
+                  <option value="bKash" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">bKash</option>
+                  <option value="Nagad" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Nagad</option>
+                  <option value="Binance Pay" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Binance Pay (USDT)</option>
                 </select>
               </div>
             </div>
@@ -185,7 +185,7 @@ export default function WalletPage() {
                 axisLine={false} 
                 tickLine={false} 
                 dx={-10}
-                tickFormatter={(value) => `$${value}`}
+                tickFormatter={(value) => `${value} ৳`}
               />
               <Tooltip content={<CustomTooltip />} />
               <Area 

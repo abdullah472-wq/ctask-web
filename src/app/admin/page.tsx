@@ -132,7 +132,7 @@ export default function AdminOverviewPage() {
             </div>
             <h3 className="font-bold text-slate-300">Total Worker Earnings</h3>
           </div>
-          <p className="text-4xl font-bold text-white">${stats.totalPaid.toFixed(2)}</p>
+          <p className="text-4xl font-bold text-white">{stats.totalPaid.toFixed(2)} ৳</p>
         </div>
       </div>
 
@@ -195,8 +195,8 @@ export default function AdminOverviewPage() {
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{fill: '#1e293b', opacity: 0.4}} />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                <Bar dataKey="payouts" name="Total Payouts ($)" fill="#10B981" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="pending" name="Pending Withdrawals ($)" fill="#00F2FE" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="payouts" name="Total Payouts (৳)" fill="#10B981" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="pending" name="Pending Withdrawals (৳)" fill="#00F2FE" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Loader2, Check, X, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
+import { approveTaskSubmission } from '@/app/actions/approveTask';
 
 interface PendingSubmission {
   id: string;
@@ -55,13 +56,13 @@ export default function ReviewProofsPage() {
   const handleApprove = async (sub: PendingSubmission) => {
     setActionLoading(sub.id);
     try {
-      const { error } = await supabase.rpc('approve_submission', {
-        sub_id: sub.id,
-        t_id: sub.tasks.id,
-        w_id: sub.profiles.id,
-        reward: sub.tasks.reward_amount
-      });
-      if (error) throw error;
+      const result = await approveTaskSubmission(
+        sub.id,
+        sub.tasks.id,
+        sub.profiles.id,
+        sub.tasks.reward_amount
+      );
+      if (!result.success) throw new Error(result.error);
       setSubmissions(prev => prev.filter(s => s.id !== sub.id));
     } catch (err: any) {
       alert('Error approving: ' + err.message);
@@ -115,7 +116,7 @@ export default function ReviewProofsPage() {
                 <div>
                   <h3 className="text-xl font-bold text-white mb-1">{sub.tasks?.title}</h3>
                   <div className="flex gap-4 text-sm">
-                    <span className="text-brand-emerald font-bold">${sub.tasks?.reward_amount?.toFixed(2)}</span>
+                    <span className="text-brand-emerald font-bold">{sub.tasks?.reward_amount?.toFixed(2)} ৳</span>
                     <span className="text-slate-500">Worker: {sub.profiles?.full_name}</span>
                     <span className="text-slate-500">{new Date(sub.submitted_at).toLocaleDateString()}</span>
                   </div>

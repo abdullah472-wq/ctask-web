@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { Mail, Lock, ArrowRight, Loader2, User, Gift } from 'lucide-react';
@@ -16,6 +16,17 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [referralCode, setReferralCode] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const ref = urlParams.get('ref');
+      if (ref) {
+        setReferralCode(ref);
+        setIsLogin(false); // Switch to sign up tab
+      }
+    }
+  }, []);
 
   const generateReferralCode = () => {
     return Math.random().toString(36).substring(2, 10).toUpperCase();

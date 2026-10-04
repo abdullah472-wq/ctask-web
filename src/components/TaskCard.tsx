@@ -12,23 +12,28 @@ interface Task {
   total_slots: number;
   completed_slots: number;
   proof_instruction: string;
-  category: string;
+  category_id?: string;
+  subcategory_id?: string;
+  category?: { name: string };
+  subcategory?: { name: string };
   is_premium?: boolean;
 }
 
 interface TaskCardProps {
   task: Task;
   onSelect: (task: Task) => void;
+  onLockedClick?: () => void;
   userPlan?: string;
 }
 
-export function TaskCard({ task, onSelect, userPlan = 'basic' }: TaskCardProps) {
+export function TaskCard({ task, onSelect, onLockedClick, userPlan = 'basic' }: TaskCardProps) {
   const router = useRouter();
 
   const handleSelect = () => {
     if (task.is_premium && userPlan !== 'premium') {
-      alert("👑 Upgrade to Premium to view and complete this high-paid task!");
-      router.push('/dashboard/upgrade');
+      if (onLockedClick) {
+        onLockedClick();
+      }
       return;
     }
     onSelect(task);
@@ -52,7 +57,22 @@ export function TaskCard({ task, onSelect, userPlan = 'basic' }: TaskCardProps) 
         </div>
       </div>
       
-      <h3 className="text-xl font-bold mb-2 line-clamp-1 text-slate-900 dark:text-white">{task.title}</h3>
+      <h3 className="text-xl font-bold mb-1 line-clamp-1 text-slate-900 dark:text-white">{task.title}</h3>
+      
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded">
+          {task.category?.name || 'Uncategorized'}
+        </span>
+        {task.subcategory?.name && (
+          <>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">▶</span>
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded">
+              {task.subcategory.name}
+            </span>
+          </>
+        )}
+      </div>
+
       <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 line-clamp-2 flex-grow">{task.description}</p>
       
       <button

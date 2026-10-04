@@ -45,7 +45,7 @@ export default function WithdrawalsPage() {
               {mockWithdrawals.map((w) => (
                 <tr key={w.id} className="hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4 font-medium">{w.user}</td>
-                  <td className="px-6 py-4 font-bold text-brand-emerald">${w.amount.toFixed(2)}</td>
+                  <td className="px-6 py-4 font-bold text-brand-emerald">{w.amount.toFixed(2)} ৳</td>
                   <td className="px-6 py-4">{w.method}</td>
                   <td className="px-6 py-4 font-mono text-slate-400">{w.account}</td>
                   <td className="px-6 py-4">
