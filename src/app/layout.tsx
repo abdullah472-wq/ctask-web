@@ -15,6 +15,8 @@ const geistMono = Geist_Mono({
 
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 
+import { Toaster } from 'react-hot-toast';
+
 export const metadata: Metadata = {
   title: "Ctask - Complete Tasks & Earn",
   description: "Complete simple tasks and earn real money on Ctask.",
@@ -35,6 +37,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <Toaster position="bottom-right" />
           <WhatsAppButton />
         </ThemeProvider>
       </body>

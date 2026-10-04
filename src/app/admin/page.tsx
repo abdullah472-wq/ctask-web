@@ -96,7 +96,7 @@ export default function AdminOverviewPage() {
 
       {/* Top Stats Cards */}
       <div className="grid md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-dark-card border border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-brand-cyan/30 transition-colors">
+        <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-brand-cyan/30 transition-colors">
           <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
             <Users className="w-32 h-32" />
           </div>
@@ -109,7 +109,7 @@ export default function AdminOverviewPage() {
           <p className="text-4xl font-bold text-white">{stats.totalUsers}</p>
         </div>
 
-        <div className="bg-dark-card border border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-yellow-500/30 transition-colors">
+        <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-yellow-500/30 transition-colors">
           <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
             <FileCheck className="w-32 h-32" />
           </div>
@@ -122,7 +122,7 @@ export default function AdminOverviewPage() {
           <p className="text-4xl font-bold text-white">{stats.pendingProofs}</p>
         </div>
 
-        <div className="bg-dark-card border border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-brand-emerald/30 transition-colors">
+        <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-brand-emerald/30 transition-colors">
           <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
             <CircleDollarSign className="w-32 h-32" />
           </div>
@@ -139,7 +139,7 @@ export default function AdminOverviewPage() {
       {/* Charts Section */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Line Chart: Tasks Completed */}
-        <div className="bg-dark-card border border-slate-800 rounded-3xl p-6">
+        <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
           <h3 className="text-lg font-bold mb-6 text-slate-200">Tasks Completed (Last 7 Days)</h3>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -174,7 +174,7 @@ export default function AdminOverviewPage() {
         </div>
 
         {/* Bar Chart: Financials */}
-        <div className="bg-dark-card border border-slate-800 rounded-3xl p-6">
+        <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
           <h3 className="text-lg font-bold mb-6 text-slate-200">Financial Overview</h3>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">

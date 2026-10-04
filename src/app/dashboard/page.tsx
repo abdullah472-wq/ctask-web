@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Loader2, CheckCircle, Gift, Filter, ArrowDownUp, Crown, Copy, Users } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { TaskCard } from '@/components/TaskCard';
 import { SubmitProofModal } from '@/components/SubmitProofModal';
 import { PremiumLockModal } from '@/components/PremiumLockModal';
@@ -90,10 +91,10 @@ export default function DashboardTasksPage() {
       const { error } = await supabase.rpc('claim_daily_bonus', { user_uuid: userId });
       if (error) throw error;
       
-      alert('🎉 You successfully claimed your 1.00 ৳ daily bonus!');
+      toast.success('🎉 You successfully claimed your 1.00 ৳ daily bonus!');
       await fetchProfile(userId); // Refresh profile state to disable button
     } catch (err: any) {
-      alert(err.message || 'Error claiming bonus.');
+      toast.error(err.message || 'Error claiming bonus.');
     } finally {
       setClaiming(false);
     }
@@ -169,52 +170,6 @@ export default function DashboardTasksPage() {
         </button>
       </div>
 
-      {/* Referral Card */}
-      <div className="mb-10 bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-brand-cyan/10 flex items-center justify-center text-brand-cyan">
-            <Users className="w-8 h-8" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Invite & Earn 20 ৳</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
-              Share your referral code. When a friend signs up, you get 20 ৳ instantly.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex-1 md:w-64 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 flex items-center justify-between">
-            <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-              {userProfile?.referral_code || 'Loading...'}
-            </span>
-            <button 
-              onClick={() => {
-                if (userProfile?.referral_code) {
-                  navigator.clipboard.writeText(userProfile.referral_code);
-                  alert('Referral code copied!');
-                }
-              }}
-              className="text-slate-400 hover:text-brand-cyan transition-colors"
-              title="Copy Code"
-            >
-              <Copy className="w-5 h-5" />
-            </button>
-          </div>
-          <button 
-            onClick={() => {
-              if (userProfile?.referral_code) {
-                const link = `${window.location.origin}/auth?ref=${userProfile.referral_code}`;
-                navigator.clipboard.writeText(link);
-                alert('Invite link copied!');
-              }
-            }}
-            className="px-6 py-3 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold hover:opacity-90 transition-opacity whitespace-nowrap"
-          >
-            Copy Link
-          </button>
-        </div>
-      </div>
 
       <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>

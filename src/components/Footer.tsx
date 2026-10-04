@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Facebook, Twitter, Linkedin, Youtube, Instagram } from 'lucide-react';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -53,10 +54,19 @@ export function Footer() {
 
         <div className="pt-8 border-t border-slate-200 dark:border-slate-800 text-center text-sm text-slate-500 dark:text-slate-400 flex flex-col md:flex-row justify-between items-center gap-4">
           <p>&copy; {currentYear} Ctask Platform. All rights reserved.</p>
-          <div className="flex gap-4">
-            <span className="opacity-50 hover:opacity-100 transition-opacity cursor-pointer">Facebook</span>
-            <span className="opacity-50 hover:opacity-100 transition-opacity cursor-pointer">Twitter</span>
-            <span className="opacity-50 hover:opacity-100 transition-opacity cursor-pointer">LinkedIn</span>
+          <div className="flex gap-6">
+            <a href="#" className="opacity-50 hover:opacity-100 hover:text-brand-cyan transition-all cursor-pointer">
+              <Facebook className="w-5 h-5" />
+            </a>
+            <a href="#" className="opacity-50 hover:opacity-100 hover:text-brand-cyan transition-all cursor-pointer">
+              <Instagram className="w-5 h-5" />
+            </a>
+            <a href="#" className="opacity-50 hover:opacity-100 hover:text-brand-cyan transition-all cursor-pointer">
+              <Youtube className="w-5 h-5" />
+            </a>
+            <a href="#" className="opacity-50 hover:opacity-100 hover:text-brand-cyan transition-all cursor-pointer">
+              <Linkedin className="w-5 h-5" />
+            </a>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Loader2, Save, Key, Image as ImageIcon } from 'lucide-react';
 import { UserAvatar, AVATARS } from '@/components/UserAvatar';
+import toast from 'react-hot-toast';
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -50,9 +51,9 @@ export default function SettingsPage() {
       .eq('id', session.user.id);
 
     if (error) {
-      alert('Error saving profile');
+      toast.error(error.message || 'Error saving profile');
     } else {
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
     }
     setSaving(false);
   };
@@ -79,7 +80,7 @@ export default function SettingsPage() {
     if (error) {
       setPasswordError(error.message);
     } else {
-      alert('Password updated successfully!');
+      toast.success('Password updated successfully!');
       setPassword('');
       setConfirmPassword('');
     }

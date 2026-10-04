@@ -104,13 +104,13 @@ export default function ReviewProofsPage() {
 
       <div className="grid gap-6">
         {submissions.length === 0 ? (
-          <div className="py-20 text-center text-slate-500 bg-dark-card border border-slate-800 rounded-3xl">
+          <div className="py-20 text-center text-slate-500 bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl">
             <Check className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No pending proofs to review right now.</p>
           </div>
         ) : (
           submissions.map((sub) => (
-            <div key={sub.id} className="bg-dark-card border border-slate-800 rounded-2xl p-6 flex flex-col lg:flex-row gap-6">
+            <div key={sub.id} className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col lg:flex-row gap-6">
               
               <div className="flex-1 space-y-4">
                 <div>

@@ -17,7 +17,8 @@ import {
   Check,
   Trophy,
   Menu,
-  Users
+  Users,
+  User
 } from 'lucide-react';
 import Link from 'next/link';
 import { Footer } from '@/components/Footer';
@@ -53,6 +54,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   // Mobile Sidebar State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -179,9 +181,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <h1 className="font-bold text-lg hidden md:block">Worker Dashboard</h1>
           </div>
           
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-white/5 border border-brand-emerald/30 text-brand-emerald font-mono font-medium shadow-sm">
-              <Wallet className="w-4 h-4" />
+          <div className="flex items-center gap-3 sm:gap-6">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white dark:bg-white/5 border border-brand-emerald/30 text-brand-emerald font-mono font-medium shadow-sm text-sm sm:text-base">
+              <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
               {profile?.wallet_balance?.toFixed(2) || '0.00'} ৳
             </div>
             
@@ -234,28 +236,54 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
             </div>
 
-            <div className="flex items-center gap-3">
-              <UserAvatar avatarId={profile?.avatar_id} className="w-10 h-10 shadow-sm" />
-              <div className="hidden sm:block">
-                <p className="text-sm font-bold flex items-center gap-1">
-                  {profile?.full_name}
-                  {profile?.plan_type === 'premium' && <Crown className="w-3 h-3 text-yellow-500" />}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">
-                  {profile?.verification_status === 'verified' ? '✅ Verified' : 'Unverified'}
-                </p>
-              </div>
+            {/* Profile Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2 sm:gap-3 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 transition-colors focus:outline-none"
+              >
+                <UserAvatar avatarId={profile?.avatar_id} className="w-10 h-10 shadow-sm" />
+                <div className="hidden sm:block text-left mr-2">
+                  <p className="text-sm font-bold flex items-center gap-1">
+                    {profile?.full_name}
+                    {profile?.plan_type === 'premium' && <Crown className="w-3 h-3 text-yellow-500" />}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">
+                    {profile?.verification_status === 'verified' ? '✅ Verified' : 'Unverified'}
+                  </p>
+                </div>
+              </button>
+
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50">
+                  <div className="p-2 flex flex-col">
+                    <Link href="/dashboard/profile" className="flex items-center gap-3 p-3 text-sm hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-colors">
+                      <User className="w-4 h-4 text-slate-500" />
+                      Edit Profile
+                    </Link>
+                    <Link href="/dashboard/wallet" className="flex items-center gap-3 p-3 text-sm hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-colors">
+                      <Wallet className="w-4 h-4 text-slate-500" />
+                      My Wallet
+                    </Link>
+                    <Link href="/dashboard/settings" className="flex items-center gap-3 p-3 text-sm hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-colors">
+                      <Settings className="w-4 h-4 text-slate-500" />
+                      Settings
+                    </Link>
+                    <div className="h-px bg-slate-200 dark:bg-slate-800 my-1"></div>
+                    <button onClick={handleLogout} className="flex items-center gap-3 p-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors w-full text-left">
+                      <LogOut className="w-4 h-4" />
+                      Log Out
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {profile?.role === 'admin' && (
-              <Link href="/admin" className="text-sm font-medium hover:text-brand-cyan transition-colors bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-transparent dark:border-slate-800 shadow-sm">
+              <Link href="/admin" className="hidden sm:block text-sm font-medium hover:text-brand-cyan transition-colors bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-transparent dark:border-slate-800 shadow-sm">
                 Admin Panel
               </Link>
             )}
-
-            <button onClick={handleLogout} className="text-slate-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5">
-              <LogOut className="w-5 h-5" />
-            </button>
           </div>
         </header>
 

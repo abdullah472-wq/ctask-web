@@ -18,6 +18,7 @@ export default function ReferralsPage() {
   const [referralCode, setReferralCode] = useState('');
   const [downline, setDownline] = useState<DownlineUser[]>([]);
   const [showTerms, setShowTerms] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -53,9 +54,10 @@ export default function ReferralsPage() {
   };
 
   const copyLink = () => {
-    const link = `${window.location.origin}/auth?ref=${referralCode}`;
+    const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/signup?ref=${referralCode}`;
     navigator.clipboard.writeText(link);
-    alert('Invite link copied!');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   if (loading) {
@@ -227,6 +229,13 @@ export default function ReferralsPage() {
               I Understand
             </button>
           </div>
+        </div>
+      )}
+
+      {showToast && (
+        <div className="fixed bottom-4 right-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2 z-50 animate-in slide-in-from-bottom-5">
+          <CheckCircle className="w-5 h-5 text-brand-emerald" />
+          <span className="font-bold">Link copied!</span>
         </div>
       )}
     </div>

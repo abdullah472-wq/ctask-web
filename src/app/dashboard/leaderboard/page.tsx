@@ -99,29 +99,29 @@ export default function LeaderboardPage() {
           return (
             <div 
               key={leader.id} 
-              className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-transform hover:-translate-y-1 ${rankStyle} ${isMe ? 'ring-2 ring-brand-cyan ring-offset-2 ring-offset-slate-50 dark:ring-offset-dark-bg' : ''}`}
+              className={`w-full box-border flex items-center justify-between gap-2 p-4 rounded-2xl border-2 transition-transform hover:-translate-y-1 ${rankStyle} ${isMe ? 'ring-2 ring-brand-cyan ring-offset-2 ring-offset-slate-50 dark:ring-offset-dark-bg' : ''}`}
             >
-              <div className="flex items-center gap-6">
-                <div className="w-12 flex justify-center items-center">
+              <div className="flex flex-1 items-center gap-2 min-w-0">
+                <div className="w-8 sm:w-12 flex-shrink-0 flex justify-center items-center">
                   {getRankIcon(index)}
                 </div>
                 
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-inner ${index < 3 ? 'bg-white/20 dark:bg-black/20' : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300'}`}>
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-lg shadow-inner ${index < 3 ? 'bg-white/20 dark:bg-black/20' : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300'}`}>
                     {leader.full_name.charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <h3 className={`font-bold text-lg ${index < 3 ? '' : 'text-slate-900 dark:text-white'} flex items-center gap-2`}>
-                      {maskName(leader.full_name)}
-                      {isMe && <span className="text-xs bg-brand-cyan text-dark-bg px-2 py-0.5 rounded-full uppercase tracking-wider font-black">You</span>}
+                  <div className="min-w-0">
+                    <h3 className={`font-bold text-base sm:text-lg ${index < 3 ? '' : 'text-slate-900 dark:text-white'} flex items-center gap-2 min-w-0`}>
+                      <span className="truncate">{maskName(leader.full_name)}</span>
+                      {isMe && <span className="flex-shrink-0 text-xs bg-brand-cyan text-dark-bg px-2 py-0.5 rounded-full uppercase tracking-wider font-black">You</span>}
                     </h3>
                   </div>
                 </div>
               </div>
 
-              <div className="text-right">
-                <p className="text-sm font-medium opacity-80 uppercase tracking-wider mb-1">Total Earned</p>
-                <div className={`text-2xl font-black font-mono ${index < 3 ? '' : 'text-brand-emerald'}`}>
+              <div className="flex-shrink-0 text-right">
+                <p className="text-xs sm:text-sm font-medium opacity-80 uppercase tracking-wider mb-1">Total Earned</p>
+                <div className={`text-base sm:text-2xl font-black font-mono ${index < 3 ? '' : 'text-brand-emerald'}`}>
                   {Number(leader.total_earned).toLocaleString()} ৳
                 </div>
               </div>

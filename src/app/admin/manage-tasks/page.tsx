@@ -82,10 +82,10 @@ export default function ManageTasksPage() {
         <p className="text-slate-400">View, pause, or delete existing tasks.</p>
       </div>
 
-      <div className="bg-dark-card border border-slate-800 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-white/5 text-slate-400 border-b border-slate-800">
+            <thead className="bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="px-6 py-4 font-medium">Title</th>
                 <th className="px-6 py-4 font-medium">Reward</th>
@@ -94,7 +94,7 @@ export default function ManageTasksPage() {
                 <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-900 dark:text-slate-100">
               {tasks.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
@@ -103,7 +103,7 @@ export default function ManageTasksPage() {
                 </tr>
               ) : (
                 tasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-white/5 transition-colors">
+                  <tr key={task.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 font-medium">{task.title}</td>
                     <td className="px-6 py-4 font-bold text-brand-emerald">${task.reward_amount.toFixed(2)}</td>
                     <td className="px-6 py-4">

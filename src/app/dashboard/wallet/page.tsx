@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Loader2, Wallet, ArrowUpRight } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer 
@@ -51,10 +52,10 @@ export default function WalletPage() {
   const handleWithdraw = (e: React.FormEvent) => {
     e.preventDefault();
     if (Number(amount) > balance) {
-      alert("Insufficient balance!");
+      toast.error("Insufficient balance!");
       return;
     }
-    alert(`Withdrawal request for ${amount} ৳ via ${method} sent successfully! (Mocked)`);
+    toast.success(`Withdrawal request for ${amount} ৳ via ${method} sent successfully! (Mocked)`);
     setAmount('');
     setAccountNumber('');
   };
