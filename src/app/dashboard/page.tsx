@@ -163,7 +163,7 @@ export default function DashboardTasksPage() {
         <button 
           onClick={handleClaimBonus}
           disabled={hasClaimedToday || claiming}
-          className={`px-8 py-4 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 z-10 ${hasClaimedToday ? 'bg-slate-300 dark:bg-white/10 text-slate-500 cursor-not-allowed border border-transparent' : 'bg-white dark:bg-dark-card text-brand-cyan hover:scale-105 border border-brand-cyan/30 hover:border-brand-cyan'}`}
+          className={`px-8 py-4 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 z-10 ${hasClaimedToday ? 'bg-slate-300 dark:bg-white/10 text-slate-500 cursor-not-allowed border border-transparent' : 'bg-white dark:bg-dark-card text-teal-700 dark:text-brand-cyan hover:scale-105 border border-teal-700/30 dark:border-brand-cyan/30 hover:border-teal-700 dark:hover:border-brand-cyan'}`}
         >
           {claiming ? <Loader2 className="w-5 h-5 animate-spin" /> : hasClaimedToday ? <CheckCircle className="w-5 h-5" /> : null}
           {hasClaimedToday ? 'Already Claimed' : 'Claim 1.00 ৳'}
@@ -195,6 +195,12 @@ export default function DashboardTasksPage() {
 
           {/* Premium Toggle */}
           <label className="flex items-center gap-2 px-3 cursor-pointer group">
+            <input 
+              type="checkbox" 
+              checked={premiumOnly} 
+              onChange={(e) => setPremiumOnly(e.target.checked)} 
+              className="hidden" 
+            />
             <div className={`w-8 h-4 rounded-full transition-colors relative ${premiumOnly ? 'bg-yellow-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
               <div className={`absolute top-0.5 left-0.5 bg-white w-3 h-3 rounded-full transition-transform ${premiumOnly ? 'translate-x-4' : ''}`}></div>
             </div>
@@ -222,7 +228,7 @@ export default function DashboardTasksPage() {
         </select>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredAndSortedTasks.length === 0 ? (
           <div className="col-span-full py-20 text-center text-slate-500 bg-white dark:bg-dark-card/50 rounded-3xl border border-slate-200 dark:border-slate-800">
             <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-brand-emerald" />

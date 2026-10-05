@@ -338,7 +338,7 @@ export default function ProfilePage() {
                     type="file" accept="image/*" required onChange={e => setNidFile(e.target.files?.[0] || null)}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
-                  <ImageIcon className="w-8 h-8 mb-2 text-slate-400 group-hover:text-brand-cyan transition-colors" />
+                  <ImageIcon className="w-8 h-8 mb-2 text-slate-400 group-hover:text-teal-700 dark:group-hover:text-brand-cyan transition-colors" />
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-1 z-0 relative">
                     {nidFile ? nidFile.name : "Upload NID Image"}
                   </p>
@@ -353,7 +353,7 @@ export default function ProfilePage() {
                     type="file" accept="image/*" required onChange={e => setSelfieFile(e.target.files?.[0] || null)}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
-                  <ImageIcon className="w-8 h-8 mb-2 text-slate-400 group-hover:text-brand-cyan transition-colors" />
+                  <ImageIcon className="w-8 h-8 mb-2 text-slate-400 group-hover:text-teal-700 dark:group-hover:text-brand-cyan transition-colors" />
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-1 z-0 relative">
                     {selfieFile ? selfieFile.name : "Upload Selfie Image"}
                   </p>

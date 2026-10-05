@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -15,7 +16,8 @@ import {
   ShieldAlert,
   CreditCard,
   Users,
-  Menu
+  Menu,
+  Settings
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -43,7 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .single();
 
       if (error || data?.role !== 'admin') {
-        alert('Access denied. Admin privileges required.');
+        toast.error('Access denied. Admin privileges required.');
         router.push('/dashboard');
         return;
       }
@@ -78,6 +80,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard },
     { label: 'Deposits', href: '/admin/deposits', icon: Landmark },
     { label: 'Withdrawals', href: '/admin/withdrawals', icon: Landmark },
+    { label: 'Settings', href: '/admin/settings', icon: Settings },
   ];
 
   return (

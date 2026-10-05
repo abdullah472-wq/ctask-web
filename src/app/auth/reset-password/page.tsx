@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useState } from 'react';
 import { supabase } from '@/utils/supabase';
@@ -33,7 +34,7 @@ export default function ResetPasswordPage() {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       
-      alert('Password updated successfully! Please log in with your new password.');
+      toast.success('Password updated successfully! Please log in with your new password.');
       router.push('/auth');
     } catch (err: any) {
       setError(err.message || 'Failed to update password.');

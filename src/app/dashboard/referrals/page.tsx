@@ -125,7 +125,7 @@ export default function ReferralsPage() {
               <div className="px-2">
                 <h3 className="font-bold text-slate-900 dark:text-white mb-1">{asset.title}</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{asset.dimensions}</p>
-                <button className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-brand-cyan/10 dark:hover:bg-brand-cyan/10 hover:text-brand-cyan transition-colors flex items-center justify-center gap-2 font-medium text-sm border border-transparent hover:border-brand-cyan/30">
+                <button className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-brand-cyan/10 dark:hover:bg-brand-cyan/10 text-slate-600 dark:text-slate-400 hover:text-teal-700 dark:hover:text-brand-cyan transition-colors flex items-center justify-center gap-2 font-medium text-sm border border-transparent hover:border-brand-cyan/30">
                   <Download className="w-4 h-4" /> Download
                 </button>
               </div>

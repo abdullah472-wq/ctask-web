@@ -1,8 +1,9 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
-import { Loader2, PlusCircle, AlertCircle } from 'lucide-react';
+import { Loader2, PlusCircle, AlertCircle, Crown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function UserCreateTaskPage() {
@@ -20,7 +21,8 @@ export default function UserCreateTaskPage() {
     total_slots: '',
     proof_instruction: '',
     category_id: '',
-    subcategory_id: ''
+    subcategory_id: '',
+    is_premium: false
   });
 
   const [categories, setCategories] = useState<any[]>([]);
@@ -84,7 +86,7 @@ export default function UserCreateTaskPage() {
     if (!userId) return;
     
     if (totalCost > depositBalance) {
-      alert('Insufficient deposit balance. Please deposit more funds.');
+      toast.error('Insufficient deposit balance. Please deposit more funds.');
       return;
     }
 
@@ -112,23 +114,25 @@ export default function UserCreateTaskPage() {
           proof_instruction: formData.proof_instruction,
           category_id: formData.category_id,
           subcategory_id: formData.subcategory_id,
+          is_premium: formData.is_premium,
           is_active: true,
           creator_id: userId
         });
 
       if (insertError) throw insertError;
 
-      alert('Task created successfully!');
+      toast.success('Task created successfully!');
       router.push('/dashboard');
     } catch (err: any) {
-      alert('Error creating task: ' + err.message);
+      toast.error('Error creating task: ' + err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+    setFormData(prev => ({ ...prev, [e.target.name]: value }));
   };
 
   if (loading) {
@@ -155,6 +159,23 @@ export default function UserCreateTaskPage() {
       <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
+            
+            {/* Premium Checkbox */}
+            <div className="flex items-center gap-3 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/5 mb-6">
+              <input 
+                type="checkbox"
+                id="is_premium"
+                name="is_premium"
+                checked={formData.is_premium}
+                onChange={handleChange}
+                className="w-5 h-5 accent-yellow-500 rounded border-slate-700"
+              />
+              <label htmlFor="is_premium" className="flex items-center gap-2 cursor-pointer font-bold text-slate-900 dark:text-white">
+                <Crown className="w-5 h-5 text-yellow-500" />
+                Make this a Premium Task
+              </label>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Category</label>

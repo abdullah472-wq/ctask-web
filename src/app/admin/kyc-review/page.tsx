@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
@@ -40,7 +41,7 @@ export default function KYCReviewPage() {
       if (error) throw error;
       setProfiles(prev => prev.filter(p => p.id !== profileId));
     } catch (err: any) {
-      alert('Error approving KYC: ' + err.message);
+      toast.error('Error approving KYC: ' + err.message);
     } finally {
       setActionLoading(null);
     }
@@ -60,7 +61,7 @@ export default function KYCReviewPage() {
       if (error) throw error;
       setProfiles(prev => prev.filter(p => p.id !== profileId));
     } catch (err: any) {
-      alert('Error rejecting KYC: ' + err.message);
+      toast.error('Error rejecting KYC: ' + err.message);
     } finally {
       setActionLoading(null);
     }

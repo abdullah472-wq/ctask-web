@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useState } from 'react';
 import { supabase } from '@/utils/supabase';
@@ -34,10 +35,10 @@ export default function DepositPage() {
 
       if (error) throw error;
 
-      alert('Deposit request submitted! Please wait for admin approval.');
+      toast.success('Deposit request submitted! Please wait for admin approval.');
       router.push('/dashboard');
     } catch (err: any) {
-      alert('Error submitting deposit: ' + err.message);
+      toast.error('Error submitting deposit: ' + err.message);
     } finally {
       setLoading(false);
     }

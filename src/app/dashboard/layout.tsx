@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { Sidebar } from '@/components/Sidebar';
@@ -55,6 +55,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Mobile Sidebar State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     checkAuth();
@@ -238,7 +253,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Profile Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button 
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center gap-2 sm:gap-3 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 transition-colors focus:outline-none"
@@ -281,7 +296,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {profile?.role === 'admin' && (
-              <Link href="/admin" className="hidden sm:block text-sm font-medium hover:text-brand-cyan transition-colors bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-transparent dark:border-slate-800 shadow-sm">
+              <Link href="/admin" className="hidden sm:block text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-teal-700 dark:hover:text-brand-cyan transition-colors bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-transparent dark:border-slate-800 shadow-sm">
                 Admin Panel
               </Link>
             )}

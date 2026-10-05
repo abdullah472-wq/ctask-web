@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
@@ -42,9 +43,9 @@ export default function SubscriptionsPage() {
       });
       if (error) throw error;
       setRequests(prev => prev.filter(r => r.id !== req.id));
-      alert('Subscription approved! User is now premium.');
+      toast.success('Subscription approved! User is now premium.');
     } catch (err: any) {
-      alert('Error approving: ' + err.message);
+      toast.error('Error approving: ' + err.message);
     } finally {
       setActionLoading(null);
     }
@@ -60,7 +61,7 @@ export default function SubscriptionsPage() {
       if (error) throw error;
       setRequests(prev => prev.filter(r => r.id !== reqId));
     } catch (err: any) {
-      alert('Error rejecting: ' + err.message);
+      toast.error('Error rejecting: ' + err.message);
     } finally {
       setActionLoading(null);
     }

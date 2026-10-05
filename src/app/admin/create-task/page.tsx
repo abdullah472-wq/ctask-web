@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
@@ -68,9 +69,9 @@ export default function CreateTaskPage() {
       });
 
     if (error) {
-      alert('Error creating task: ' + error.message);
+      toast.error('Error creating task: ' + error.message);
     } else {
-      alert('Task created successfully!');
+      toast.success('Task created successfully!');
       router.push('/admin/manage-tasks');
     }
     setSubmitting(false);

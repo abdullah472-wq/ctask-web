@@ -1,10 +1,12 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Loader2, Trash2, Power, PowerOff } from 'lucide-react';
 
 interface Task {
+  is_premium?: boolean;
   id: string;
   title: string;
   reward_amount: number;
@@ -43,7 +45,7 @@ export default function ManageTasksPage() {
       .eq('id', taskId);
 
     if (error) {
-      alert('Error updating task');
+      toast.error('Error updating task');
     } else {
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, is_active: !currentStatus } : t));
     }
@@ -60,7 +62,7 @@ export default function ManageTasksPage() {
       .eq('id', taskId);
 
     if (error) {
-      alert('Cannot delete task (likely has linked submissions). Try pausing it instead.');
+      toast.error('Cannot delete task (likely has linked submissions). Try pausing it instead.');
     } else {
       setTasks(prev => prev.filter(t => t.id !== taskId));
     }

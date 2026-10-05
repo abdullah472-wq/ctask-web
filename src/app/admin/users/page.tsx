@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
@@ -42,7 +43,7 @@ export default function UsersManagementPage() {
       if (error) throw error;
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_blocked: !currentStatus } : u));
     } catch (err: any) {
-      alert('Error updating block status: ' + err.message);
+      toast.error('Error updating block status: ' + err.message);
     } finally {
       setActionLoading(null);
     }
@@ -63,12 +64,12 @@ export default function UsersManagementPage() {
         });
         
       if (error) throw error;
-      alert('Notice sent successfully!');
+      toast.success('Notice sent successfully!');
       setNoticeModalOpen(false);
       setNoticeTitle('');
       setNoticeMessage('');
     } catch (err: any) {
-      alert('Error sending notice: ' + err.message);
+      toast.error('Error sending notice: ' + err.message);
     } finally {
       setActionLoading(null);
     }

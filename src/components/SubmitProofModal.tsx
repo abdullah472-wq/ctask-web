@@ -1,10 +1,12 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useState, useEffect } from 'react';
 import { X, Upload, Loader2, Link as LinkIcon, FileText } from 'lucide-react';
 import { supabase } from '@/utils/supabase';
 
 interface Task {
+  is_premium?: boolean;
   id: string;
   title: string;
   task_url: string;
@@ -99,11 +101,11 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
 
       if (submitError) throw submitError;
 
-      alert('Proof submitted successfully! Awaiting review.');
+      toast.success('Proof submitted successfully! Awaiting review.');
       onSuccess();
     } catch (error: any) {
       console.error('Submission error:', error);
-      alert(error.message || 'Error submitting proof');
+      toast.error(error.message || 'Error submitting proof');
     } finally {
       setSubmitting(false);
     }

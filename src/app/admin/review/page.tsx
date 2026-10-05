@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
@@ -65,7 +66,7 @@ export default function ReviewProofsPage() {
       if (!result.success) throw new Error(result.error);
       setSubmissions(prev => prev.filter(s => s.id !== sub.id));
     } catch (err: any) {
-      alert('Error approving: ' + err.message);
+      toast.error('Error approving: ' + err.message);
     } finally {
       setActionLoading(null);
     }
@@ -81,7 +82,7 @@ export default function ReviewProofsPage() {
       if (error) throw error;
       setSubmissions(prev => prev.filter(s => s.id !== subId));
     } catch (err: any) {
-      alert('Error rejecting: ' + err.message);
+      toast.error('Error rejecting: ' + err.message);
     } finally {
       setActionLoading(null);
     }

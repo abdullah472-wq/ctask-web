@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
@@ -39,9 +40,9 @@ export default function AdminDepositsPage() {
       });
       if (error) throw error;
       setDeposits(prev => prev.filter(d => d.id !== dep.id));
-      alert(`Approved ${dep.amount} ৳ deposit for ${dep.profiles.full_name}.`);
+      toast.success(`Approved ${dep.amount} ৳ deposit for ${dep.profiles.full_name}.`);
     } catch (err: any) {
-      alert('Error approving deposit: ' + err.message);
+      toast.error('Error approving deposit: ' + err.message);
     } finally {
       setActionLoading(null);
     }
@@ -57,7 +58,7 @@ export default function AdminDepositsPage() {
       if (error) throw error;
       setDeposits(prev => prev.filter(d => d.id !== depId));
     } catch (err: any) {
-      alert('Error rejecting: ' + err.message);
+      toast.error('Error rejecting: ' + err.message);
     } finally {
       setActionLoading(null);
     }

@@ -1,4 +1,5 @@
 'use client';
+import { toast } from 'react-hot-toast';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
@@ -45,10 +46,10 @@ export default function UpgradePage() {
 
       if (error) throw error;
       
-      alert('Upgrade request submitted! An admin will verify the transaction shortly.');
+      toast.success('Upgrade request submitted! An admin will verify the transaction shortly.');
       setTransactionId('');
     } catch (err: any) {
-      alert(err.message || 'Error submitting request');
+      toast.error(err.message || 'Error submitting request');
     } finally {
       setSubmitting(false);
     }
