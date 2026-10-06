@@ -2,80 +2,127 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
-import { 
-  Wallet, 
-  Bell, 
-  ShieldAlert, 
-  UserCircle,
-  Save,
-  Loader2,
-  Key,
-  LogOut,
-  Trash2,
-  Smartphone
-} from 'lucide-react';
-import toast from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
+import { User, CreditCard, Lock, Loader2, Save, UploadCloud, ShieldCheck, CheckCircle2, AlertCircle, Clock, AlertTriangle, Phone } from 'lucide-react';
+import { UserAvatar, AVATARS } from '@/components/UserAvatar';
 
-export default function ClientSettingsPage() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState('payment');
+export default function SettingsPage() {
+  const [activeTab, setActiveTab] = useState<'profile' | 'payment' | 'security' | 'kyc'>('profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Profile Data
-  const [profile, setProfile] = useState<any>({
-    bkash_number: '',
-    nagad_number: '',
-    bank_details: '',
-    preferred_withdrawal: 'bKash',
-    task_notifications: true,
-    earnings_notifications: true,
-    withdrawal_notifications: true,
-    system_notifications: true,
-    account_status: 'Active'
-  });
+  // Profile State
+  const [email, setEmail] = useState('');
+  const [avatarId, setAvatarId] = useState('avatar-1');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [address, setAddress] = useState('');
+  const [district, setDistrict] = useState('');
+  const [postCode, setPostCode] = useState('');
+  const [country, setCountry] = useState('Bangladesh');
 
-  // Password State
-  const [savingPassword, setSavingPassword] = useState(false);
-  const [password, setPassword] = useState('');
+  // Payment State
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [paymentNumber, setPaymentNumber] = useState('');
+
+  // Security State
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // KYC State
+  const [kycStatus, setKycStatus] = useState('unverified');
+  const [kycRejectReason, setKycRejectReason] = useState('');
+  const [idType, setIdType] = useState('NID');
+  const [idNumber, setIdNumber] = useState('');
+  const [idFront, setIdFront] = useState<File | null>(null);
+  const [idBack, setIdBack] = useState<File | null>(null);
+
   useEffect(() => {
-    fetchProfile();
+    fetchUserData();
   }, []);
 
-  const fetchProfile = async () => {
+  const fetchUserData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Not authenticated');
-        return;
-      }
+      if (!user) return;
+      
       setUserId(user.id);
+      setEmail(user.email || '');
 
-      const { data, error } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
-        .select('*')
+        .select('first_name, last_name, phone, phone_verified, address, district, post_code, country, avatar_id, default_payment_method, default_payment_number, kyc_status, kyc_reject_reason, id_type, id_number')
         .eq('id', user.id)
         .single();
-        
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+
+      if (profile) {
+        if (profile.avatar_id) setAvatarId(profile.avatar_id);
+        setFirstName(profile.first_name || '');
+        setLastName(profile.last_name || '');
+        setPhone(profile.phone || '');
+        setPhoneVerified(profile.phone_verified || false);
+        setAddress(profile.address || '');
+        setDistrict(profile.district || '');
+        setPostCode(profile.post_code || '');
+        if (profile.country) setCountry(profile.country);
+        setPaymentMethod(profile.default_payment_method || '');
+        setPaymentNumber(profile.default_payment_number || '');
+        setKycStatus(profile.kyc_status || 'unverified');
+        setKycRejectReason(profile.kyc_reject_reason || '');
+        if (profile.id_type) setIdType(profile.id_type);
+        if (profile.id_number) setIdNumber(profile.id_number);
       }
-      
-      if (data) {
-        setProfile((prev: any) => ({ ...prev, ...data }));
-      }
-    } catch (error: any) {
-      console.error('Error fetching profile:', error);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId) return;
+    setSaving(true);
+    
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          avatar_id: avatarId,
+          first_name: firstName,
+          last_name: lastName,
+          full_name: fullName,
+          phone,
+          address,
+          district,
+          post_code: postCode,
+          country
+        })
+        .eq('id', userId);
+        
+      if (error) throw error;
+      toast.success('Profile updated successfully!');
+    } catch (err: any) {
+      toast.error(err.message || 'Error updating profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleVerifyPhone = () => {
+    toast.success('OTP Sent! (Mock)');
+    setTimeout(() => {
+      setPhoneVerified(true);
+      toast.success('Phone verified successfully!');
+    }, 1500);
+  };
+
+  const handleUpdatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
     setSaving(true);
@@ -83,304 +130,530 @@ export default function ClientSettingsPage() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({
-          bkash_number: profile.bkash_number,
-          nagad_number: profile.nagad_number,
-          bank_details: profile.bank_details,
-          preferred_withdrawal: profile.preferred_withdrawal,
-          task_notifications: profile.task_notifications,
-          earnings_notifications: profile.earnings_notifications,
-          withdrawal_notifications: profile.withdrawal_notifications,
-          system_notifications: profile.system_notifications
+        .update({ 
+          default_payment_method: paymentMethod,
+          default_payment_number: paymentNumber
         })
         .eq('id', userId);
         
       if (error) throw error;
-      toast.success('Settings updated successfully!');
-    } catch (error: any) {
-      console.error('Error saving profile:', error);
-      toast.error(error.message || 'Failed to save settings');
+      toast.success('Payment settings updated!');
+    } catch (err: any) {
+      toast.error(err.message || 'Error updating payment settings');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSavingPassword(true);
-
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters long.');
-      setSavingPassword(false);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match.');
-      setSavingPassword(false);
-      return;
-    }
-
-    const { error } = await supabase.auth.updateUser({ password });
-
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success('Password updated successfully!');
-      setPassword('');
-      setConfirmPassword('');
-    }
-    setSavingPassword(false);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
     
-    setProfile((prev: any) => ({ ...prev, [name]: val }));
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+      toast.success('Password updated successfully!');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Error updating password');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const tabs = [
-    { id: 'payment', label: 'Payment & Withdrawal', icon: <Wallet className="w-4 h-4" /> },
-    { id: 'notifications', label: 'Notifications', icon: <Bell className="w-4 h-4" /> },
-    { id: 'security', label: 'Security', icon: <ShieldAlert className="w-4 h-4" /> },
-    { id: 'account', label: 'Account', icon: <UserCircle className="w-4 h-4" /> },
-  ];
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setFile: React.Dispatch<React.SetStateAction<File | null>>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Only JPEG, PNG, and WebP images are allowed.');
+      e.target.value = ''; // Reset input
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB.');
+      e.target.value = ''; // Reset input
+      return;
+    }
+
+    setFile(file);
+  };
+
+  const handleSubmitKyc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId) return;
+    
+    if (!idFront || !idBack) {
+      toast.error('Please upload both front and back sides of your ID.');
+      return;
+    }
+    
+    // In a real app, upload idFront and idBack to Supabase Storage here
+    // const frontPath = await uploadToStorage(idFront); ...
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          kyc_status: 'pending',
+          id_type: idType,
+          id_number: idNumber,
+          // id_front_url: frontPath,
+          // id_back_url: backPath
+        })
+        .eq('id', userId);
+        
+      if (error) throw error;
+      toast.success('KYC Documents submitted successfully!');
+      setKycStatus('pending');
+    } catch (err: any) {
+      toast.error(err.message || 'Error submitting KYC');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-[#00F2FE]" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" />
       </div>
     );
   }
 
+  const tabs = [
+    { id: 'profile', label: 'General Profile', icon: User },
+    { id: 'payment', label: 'Payment Settings', icon: CreditCard },
+    { id: 'security', label: 'Security', icon: Lock },
+    { id: 'kyc', label: 'KYC Verification', icon: ShieldCheck },
+  ] as const;
+
   return (
-    <div className="max-w-5xl space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h1>
-          <p className="text-slate-500 dark:text-slate-400">Manage your account preferences and security.</p>
-        </div>
+    <div className="max-w-5xl mx-auto p-4 md:p-6">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Settings</h1>
+        <p className="text-slate-500 dark:text-slate-400">Manage your account preferences and configurations.</p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
+      <div className="flex flex-col md:flex-row gap-8">
+        
         {/* Sidebar Tabs */}
-        <div className="w-full md:w-64 shrink-0 space-y-1">
+        <div className="md:w-64 shrink-0 flex flex-row md:flex-col gap-2 overflow-x-auto pb-4 md:pb-0 hide-scrollbar">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-[#00F2FE]'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200'
-              }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all whitespace-nowrap border
+                ${activeTab === tab.id 
+                  ? 'bg-purple-50 dark:bg-brand-accent/10 text-brand-accent border-brand-accent/30 shadow-sm' 
+                  : 'bg-transparent text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'}`}
             >
-              {tab.icon}
+              <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-brand-accent' : 'text-slate-400'}`} />
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 bg-white dark:bg-[#0f172a] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <div className="p-6 sm:p-8">
+        {/* Tab Content Area */}
+        <div className="flex-1">
+          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
             
-            {/* Payment & Withdrawal Tab */}
-            {activeTab === 'payment' && (
-              <form onSubmit={handleSaveProfile} className="space-y-6">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Payment Methods</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">bKash Number</label>
-                    <input 
-                      type="text" name="bkash_number" value={profile.bkash_number || ''} onChange={handleChange}
-                      className="w-full bg-slate-50 dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors"
-                      placeholder="e.g. 017XXXXXXX"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Nagad Number</label>
-                    <input 
-                      type="text" name="nagad_number" value={profile.nagad_number || ''} onChange={handleChange}
-                      className="w-full bg-slate-50 dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors"
-                      placeholder="e.g. 018XXXXXXX"
-                    />
-                  </div>
-                </div>
+            {/* PROFILE TAB */}
+            {activeTab === 'profile' && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Profile Information</h2>
                 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Bank Account Details (Optional)</label>
-                  <textarea 
-                    name="bank_details" value={profile.bank_details || ''} onChange={handleChange} rows={3}
-                    className="w-full bg-slate-50 dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors"
-                    placeholder="Bank Name, Branch, Account Number, Routing Number..."
-                  ></textarea>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Preferred Withdrawal Method</label>
-                  <select 
-                    name="preferred_withdrawal" value={profile.preferred_withdrawal || 'bKash'} onChange={handleChange}
-                    className="w-full md:w-1/2 bg-slate-50 dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors"
-                  >
-                    <option value="bKash">bKash</option>
-                    <option value="Nagad">Nagad</option>
-                    <option value="Bank">Bank Transfer</option>
-                  </select>
-                </div>
+                <form onSubmit={handleUpdateProfile} className="space-y-6">
+                  <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 text-orange-800 dark:text-orange-400 p-4 rounded-xl flex gap-3 text-sm font-medium mb-8">
+                    <AlertTriangle className="w-5 h-5 shrink-0" />
+                    <p>⚠️ Important: Please ensure your Name and Address exactly match your NID or Government ID. Mismatches will result in KYC rejection and account suspension.</p>
+                  </div>
 
-                <div className="pt-4 flex justify-end">
-                  <button type="submit" disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-[#00F2FE] to-[#4FACFE] text-white px-6 py-2.5 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-70">
-                    {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                    Save Payment Details
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Notifications Tab */}
-            {activeTab === 'notifications' && (
-              <form onSubmit={handleSaveProfile} className="space-y-6">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Notification Preferences</h2>
-                <div className="space-y-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <div className="relative">
-                      <input type="checkbox" name="task_notifications" checked={profile.task_notifications} onChange={handleChange} className="sr-only" />
-                      <div className={`block w-10 h-6 rounded-full transition-colors ${profile.task_notifications ? 'bg-[#00F2FE]' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
-                      <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${profile.task_notifications ? 'transform translate-x-4' : ''}`}></div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+                      <User className="w-4 h-4" /> Choose Avatar
+                    </label>
+                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-4 mb-6">
+                      {AVATARS.map(avatar => (
+                        <button
+                          key={avatar.id}
+                          type="button"
+                          onClick={() => setAvatarId(avatar.id)}
+                          className={`relative rounded-xl overflow-hidden transition-all border-2 ${
+                            avatarId === avatar.id 
+                              ? 'border-brand-accent shadow-[0_0_15px_-3px_#00F2FE] scale-110 z-10' 
+                              : 'border-transparent hover:border-slate-300 dark:hover:border-slate-700'
+                          }`}
+                        >
+                          <UserAvatar avatarId={avatar.id} className="w-full aspect-square" />
+                          {avatarId === avatar.id && (
+                            <div className="absolute inset-0 bg-brand-accent/20 flex items-center justify-center backdrop-blur-[1px]">
+                              <div className="w-6 h-6 bg-brand-accent text-dark-bg rounded-full flex items-center justify-center font-bold shadow-md text-xs">✓</div>
+                            </div>
+                          )}
+                        </button>
+                      ))}
                     </div>
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Task Approvals & Rejections</span>
-                  </label>
-                  
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <div className="relative">
-                      <input type="checkbox" name="earnings_notifications" checked={profile.earnings_notifications} onChange={handleChange} className="sr-only" />
-                      <div className={`block w-10 h-6 rounded-full transition-colors ${profile.earnings_notifications ? 'bg-[#00F2FE]' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
-                      <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${profile.earnings_notifications ? 'transform translate-x-4' : ''}`}></div>
-                    </div>
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">New Earnings Alerts</span>
-                  </label>
-                  
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <div className="relative">
-                      <input type="checkbox" name="withdrawal_notifications" checked={profile.withdrawal_notifications} onChange={handleChange} className="sr-only" />
-                      <div className={`block w-10 h-6 rounded-full transition-colors ${profile.withdrawal_notifications ? 'bg-[#00F2FE]' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
-                      <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${profile.withdrawal_notifications ? 'transform translate-x-4' : ''}`}></div>
-                    </div>
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Withdrawal Status Updates</span>
-                  </label>
+                  </div>
 
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <div className="relative">
-                      <input type="checkbox" name="system_notifications" checked={profile.system_notifications} onChange={handleChange} className="sr-only" />
-                      <div className={`block w-10 h-6 rounded-full transition-colors ${profile.system_notifications ? 'bg-[#00F2FE]' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
-                      <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${profile.system_notifications ? 'transform translate-x-4' : ''}`}></div>
-                    </div>
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">System Announcements</span>
-                  </label>
-                </div>
-
-                <div className="pt-4 flex justify-end border-t border-slate-200 dark:border-slate-800">
-                  <button type="submit" disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-[#00F2FE] to-[#4FACFE] text-white px-6 py-2.5 rounded-xl font-medium hover:opacity-90 transition-opacity disabled:opacity-70">
-                    {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                    Save Preferences
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Security Tab */}
-            {activeTab === 'security' && (
-              <div className="space-y-8">
-                {/* Change Password */}
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                    <Key className="w-5 h-5 text-[#00F2FE]" /> Change Password
-                  </h2>
-                  <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
+                  <div className="grid sm:grid-cols-2 gap-6">
                     <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">First Name</label>
                       <input 
-                        type="password" required value={password} onChange={e => setPassword(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors"
-                        placeholder="New Password"
+                        type="text" required value={firstName} onChange={e => setFirstName(e.target.value)}
+                        disabled={kycStatus === 'verified'}
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Last Name</label>
                       <input 
-                        type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors"
-                        placeholder="Confirm New Password"
+                        type="text" required value={lastName} onChange={e => setLastName(e.target.value)}
+                        disabled={kycStatus === 'verified'}
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
-                    <button 
-                      type="submit" disabled={savingPassword || !password || !confirmPassword}
-                      className="px-6 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
-                    >
-                      {savingPassword && <Loader2 className="w-4 h-4 animate-spin" />} Update Password
-                    </button>
-                  </form>
-                </div>
+                  </div>
+                  {kycStatus === 'verified' && (
+                    <p className="text-xs text-brand-primary font-medium mt-2">
+                      <ShieldCheck className="inline-block w-3 h-3 mr-1" />
+                      Your name is locked because your identity is already verified.
+                    </p>
+                  )}
 
-                {/* Login Sessions */}
-                <div className="pt-8 border-t border-slate-200 dark:border-slate-800">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                    <Smartphone className="w-5 h-5 text-[#00F2FE]" /> Active Sessions
-                  </h2>
-                  <div className="bg-slate-50 dark:bg-[#0b0f19] rounded-xl border border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-[#00F2FE]/10 rounded-lg text-[#00F2FE]">
-                        <Smartphone className="w-6 h-6" />
+                  <div className="grid sm:grid-cols-2 gap-6 pt-2">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
+                      <input 
+                        type="email"
+                        value={email}
+                        disabled
+                        className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-slate-500 cursor-not-allowed"
+                      />
+                      <p className="text-xs text-slate-500 mt-2">Cannot be changed here.</p>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center w-full mb-2">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Phone Number</label>
+                        {phoneVerified ? (
+                          <span className="text-brand-primary text-xs flex items-center gap-1 font-semibold"><CheckCircle2 className="w-3 h-3" /> Verified</span>
+                        ) : (
+                          <span className="text-yellow-500 text-xs font-semibold">Unverified</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <input 
+                          type="tel" required value={phone} onChange={e => setPhone(e.target.value)}
+                          className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
+                          placeholder="+880..."
+                        />
+                        {!phoneVerified && (
+                          <button type="button" onClick={handleVerifyPhone} className="px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-sm transition-colors flex items-center gap-2">
+                            <Phone className="w-4 h-4" /> Verify
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+                    <h3 className="font-bold text-slate-900 dark:text-white">Address Information</h3>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Street Address</label>
+                      <input 
+                        type="text" required value={address} onChange={e => setAddress(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">District / State</label>
+                        <input 
+                          type="text" required value={district} onChange={e => setDistrict(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
+                        />
                       </div>
                       <div>
-                        <p className="font-medium text-slate-900 dark:text-white">Current Session (Chrome on Windows)</p>
-                        <p className="text-sm text-slate-500">Active right now • Dhaka, Bangladesh</p>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Post Code</label>
+                        <input 
+                          type="text" required value={postCode} onChange={e => setPostCode(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Country</label>
+                        <input 
+                          type="text" required value={country} onChange={e => setCountry(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
+                        />
                       </div>
                     </div>
-                    <span className="text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 px-2 py-1 rounded-full">Current</span>
                   </div>
-                </div>
 
-                {/* 2FA Coming Soon */}
-                <div className="pt-8 border-t border-slate-200 dark:border-slate-800">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                    <ShieldAlert className="w-5 h-5 text-slate-400" /> Two-Factor Authentication
-                  </h2>
-                  <p className="text-sm text-slate-500 mb-4">Add an extra layer of security to your account.</p>
-                  <button disabled className="px-6 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium opacity-70 cursor-not-allowed">
-                    Coming Soon
-                  </button>
-                </div>
+                  <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <button 
+                      type="submit" 
+                      disabled={saving}
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      Save Profile
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
 
-            {/* Account Tab */}
-            {activeTab === 'account' && (
-              <div className="space-y-8">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Account Status</h2>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${profile.account_status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
-                    <span className="font-medium text-slate-900 dark:text-white">{profile.account_status || 'Active'}</span>
+            {/* PAYMENT TAB */}
+            {activeTab === 'payment' && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Withdrawal Settings</h2>
+                
+                <form onSubmit={handleUpdatePayment} className="space-y-6">
+                  <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-lg p-4 mb-6">
+                    <p className="text-sm text-amber-800 dark:text-amber-300">
+                      <strong>Note:</strong> Set your default withdrawal method here. This will be automatically selected when you request a payout.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Default Withdrawal Method</label>
+                      <select 
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        required
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors"
+                      >
+                        <option value="" disabled>Select Method</option>
+                        <option value="bKash">bKash</option>
+                        <option value="Nagad">Nagad</option>
+                        <option value="Binance">Binance</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Default Account Number</label>
+                      <input 
+                        type="text"
+                        value={paymentNumber}
+                        onChange={(e) => setPaymentNumber(e.target.value)}
+                        required
+                        placeholder="e.g. 017XXXXXXXX"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <button 
+                      type="submit" 
+                      disabled={saving}
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      Save Payment Settings
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* SECURITY TAB */}
+            {activeTab === 'security' && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Security & Authentication</h2>
+                
+                <form onSubmit={handleUpdatePassword} className="space-y-6">
+                  <div className="grid grid-cols-1 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">New Password</label>
+                      <input 
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                        placeholder="••••••••"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Confirm New Password</label>
+                      <input 
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        placeholder="••••••••"
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <button 
+                      type="submit" 
+                      disabled={saving}
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                      Update Password
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* KYC TAB */}
+            {activeTab === 'kyc' && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Identity Verification</h2>
+                  
+                  {/* KYC Status Badge */}
+                  <div className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5
+                    ${kycStatus === 'verified' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
+                    ${kycStatus === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : ''}
+                    ${kycStatus === 'unverified' ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' : ''}
+                    ${kycStatus === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : ''}
+                  `}>
+                    {kycStatus === 'verified' && <CheckCircle2 className="w-4 h-4" />}
+                    {kycStatus === 'pending' && <Clock className="w-4 h-4" />}
+                    {kycStatus === 'unverified' && <ShieldCheck className="w-4 h-4" />}
+                    {kycStatus === 'rejected' && <AlertCircle className="w-4 h-4" />}
+                    {kycStatus}
                   </div>
                 </div>
+                
+                {(kycStatus === 'unverified' || kycStatus === 'rejected') ? (
+                  <form onSubmit={handleSubmitKyc} className="space-y-6">
+                    {kycStatus === 'rejected' && (
+                      <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg p-4 mb-6">
+                        <p className="text-sm font-bold text-red-800 dark:text-red-300 flex items-center gap-2 mb-1">
+                          <AlertCircle className="w-4 h-4 shrink-0" />
+                          Your KYC submission was rejected
+                        </p>
+                        <p className="text-sm text-red-700 dark:text-red-400">
+                          <strong>Reason:</strong> {kycRejectReason || 'No reason provided.'}
+                        </p>
+                        <p className="text-sm text-red-700 dark:text-red-400 mt-2">
+                          Please review your details and submit clear photos again.
+                        </p>
+                      </div>
+                    )}
 
-                <div className="pt-8 border-t border-slate-200 dark:border-slate-800">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Device Management</h2>
-                  <p className="text-sm text-slate-500 mb-4">Log out from all other devices if you notice suspicious activity.</p>
-                  <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-medium transition-colors">
-                    <LogOut className="w-4 h-4" /> Logout All Devices
-                  </button>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Document Type</label>
+                        <select 
+                          value={idType}
+                          onChange={(e) => setIdType(e.target.value)}
+                          required
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors"
+                        >
+                          <option value="NID">National ID (NID)</option>
+                          <option value="Passport">Passport</option>
+                          <option value="Driving License">Driving License</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Document Number</label>
+                        <input 
+                          type="text"
+                          value={idNumber}
+                          onChange={(e) => setIdNumber(e.target.value)}
+                          required
+                          placeholder={`Enter your ${idType} number`}
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors"
+                        />
+                      </div>
+                    </div>
 
-                <div className="pt-8 border-t border-slate-200 dark:border-slate-800">
-                  <h2 className="text-lg font-semibold text-red-600 dark:text-red-500 mb-4">Danger Zone</h2>
-                  <p className="text-sm text-slate-500 mb-4">Once you delete your account, there is no going back. Please be certain.</p>
-                  <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 font-medium transition-colors">
-                    <Trash2 className="w-4 h-4" /> Delete Account
-                  </button>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 cursor-pointer">
+                          Upload Front Side
+                          <input 
+                            type="file" 
+                            accept="image/jpeg, image/png, image/webp"
+                            required
+                            className="hidden"
+                            onChange={(e) => handleFileChange(e, setIdFront)}
+                          />
+                        </label>
+                        <p className="text-xs text-slate-500">{idFront ? idFront.name : "JPEG, PNG, WebP up to 5MB"}</p>
+                      </div>
+
+                      <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 cursor-pointer">
+                          Upload Back Side
+                          <input 
+                            type="file" 
+                            accept="image/jpeg, image/png, image/webp"
+                            required
+                            className="hidden"
+                            onChange={(e) => handleFileChange(e, setIdBack)}
+                          />
+                        </label>
+                        <p className="text-xs text-slate-500">{idBack ? idBack.name : "JPEG, PNG, WebP up to 5MB"}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <button 
+                        type="submit" 
+                        disabled={saving}
+                        className="px-6 py-3 rounded-xl bg-[#5A189A] hover:bg-[#7B2CBF] text-white font-bold transition-colors flex items-center justify-center w-full md:w-auto gap-2 disabled:opacity-50"
+                      >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                        Submit Documents
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center py-12 px-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                    {kycStatus === 'pending' ? (
+                      <>
+                        <Clock className="w-16 h-16 text-amber-500 mb-4" />
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Documents Under Review</h3>
+                        <p className="text-slate-500 dark:text-slate-400 max-w-md">
+                          We have received your KYC submission and our admins are currently reviewing it. This process usually takes 24-48 hours.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Account Verified</h3>
+                        <p className="text-slate-500 dark:text-slate-400 max-w-md">
+                          Your identity has been fully verified. You can now access all premium features and fast withdrawals on Ctask.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { LucideIcon } from 'lucide-react';
 
@@ -10,6 +11,7 @@ interface SidebarProps {
     label: string;
     href: string;
     icon: LucideIcon;
+    badgeCount?: number;
   }[];
   isOpen?: boolean;
   setIsOpen?: (isOpen: boolean) => void;
@@ -31,10 +33,14 @@ export function Sidebar({ title, links, isOpen, setIsOpen }: SidebarProps) {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-dark-card border-r border-slate-200 dark:border-slate-800 h-screen flex flex-col transition-transform duration-300 md:translate-x-0 md:sticky md:top-0 overflow-hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-cyan to-brand-emerald flex items-center justify-center font-bold text-white dark:text-dark-bg mr-3 shadow-sm">
-              C
-            </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-cyan to-brand-emerald">
+            <Image 
+              src="/icon.png"
+              alt="Ctask Icon"
+              width={64}
+              height={64}
+              className="h-16 w-16 object-contain mr-3"
+            />
+            <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-accent to-brand-primary">
               {title}
             </span>
           </div>
@@ -54,14 +60,21 @@ export function Sidebar({ title, links, isOpen, setIsOpen }: SidebarProps) {
             <Link
               key={link.href}
               href={link.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+              className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
                 isActive 
-                  ? 'bg-emerald-50 text-emerald-700 font-semibold dark:bg-emerald-500/15 dark:text-emerald-400' 
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold dark:bg-indigo-500/15 dark:text-indigo-400' 
                   : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/50'
               }`}
             >
-              <link.icon className="w-5 h-5" />
-              {link.label}
+              <div className="flex items-center gap-3">
+                <link.icon className="w-5 h-5" />
+                {link.label}
+              </div>
+              {link.badgeCount !== undefined && link.badgeCount > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                  {link.badgeCount > 99 ? '99+' : link.badgeCount}
+                </span>
+              )}
             </Link>
           );
         })}

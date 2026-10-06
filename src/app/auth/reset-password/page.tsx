@@ -47,7 +47,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-dark-bg flex items-center justify-center p-6 text-slate-900 dark:text-slate-100 transition-colors duration-300">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-cyan to-brand-emerald flex items-center justify-center font-bold text-white dark:text-dark-bg text-xl mx-auto mb-4 shadow-[0_0_20px_-5px_#00F2FE]">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-accent to-brand-primary flex items-center justify-center font-bold text-white dark:text-dark-bg text-xl mx-auto mb-4 shadow-[0_0_20px_-5px_#7B2CBF]">
             <Key className="w-6 h-6" />
           </div>
           <h1 className="text-3xl font-bold mb-2">Create New Password</h1>
@@ -75,7 +75,7 @@ export default function ResetPasswordPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-all"
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
                   placeholder="••••••••"
                 />
               </div>
@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-all"
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
                   placeholder="••••••••"
                 />
               </div>
@@ -101,7 +101,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading || !password || !confirmPassword}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-cyan to-brand-emerald text-dark-bg font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                 <>

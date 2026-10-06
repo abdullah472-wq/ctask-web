@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
 
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-cyan to-brand-emerald flex items-center justify-center font-bold text-white dark:text-dark-bg text-xl mx-auto mb-4 shadow-[0_0_20px_-5px_#00F2FE]">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-accent to-brand-primary flex items-center justify-center font-bold text-white dark:text-dark-bg text-xl mx-auto mb-4 shadow-[0_0_20px_-5px_#7B2CBF]">
             <Mail className="w-6 h-6" />
           </div>
           <h1 className="text-3xl font-bold mb-2">Forgot Password?</h1>
@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
         <div className="bg-white dark:bg-dark-card p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xl">
           {success ? (
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-brand-emerald/10 text-brand-emerald rounded-full flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 bg-brand-primary/10 text-brand-primary rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-bold">Check your inbox</h3>
@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
               </p>
               <button 
                 onClick={() => setSuccess(false)}
-                className="text-brand-cyan font-bold hover:underline mt-4 inline-block"
+                className="text-brand-accent font-bold hover:underline mt-4 inline-block"
               >
                 Try another email
               </button>
@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-all"
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
                     placeholder="you@example.com"
                   />
                 </div>
@@ -91,7 +91,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading || !email}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-cyan to-brand-emerald text-dark-bg font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Reset Link'}
               </button>

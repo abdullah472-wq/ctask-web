@@ -33,17 +33,20 @@ export async function approveTaskSubmission(sub_id: string, t_id: string, w_id: 
       .eq('id', t_id);
     if (taskUpdateError) throw taskUpdateError;
 
-    // 3. Update worker's wallet balance
+    // 3. Update worker's wallet balance and total earned
     const { data: workerData, error: workerFetchError } = await supabaseAdmin
       .from('profiles')
-      .select('wallet_balance, referred_by')
+      .select('wallet_balance, total_earned, referred_by')
       .eq('id', w_id)
       .single();
     if (workerFetchError) throw workerFetchError;
 
     const { error: workerUpdateError } = await supabaseAdmin
       .from('profiles')
-      .update({ wallet_balance: (workerData.wallet_balance || 0) + reward })
+      .update({ 
+        wallet_balance: Number(workerData.wallet_balance || 0) + Number(reward),
+        total_earned: Number(workerData.total_earned || 0) + Number(reward)
+      })
       .eq('id', w_id);
     if (workerUpdateError) throw workerUpdateError;
 
@@ -60,7 +63,7 @@ export async function approveTaskSubmission(sub_id: string, t_id: string, w_id: 
       if (!referrerFetchError && referrerData) {
         await supabaseAdmin
           .from('profiles')
-          .update({ wallet_balance: (referrerData.wallet_balance || 0) + commission })
+          .update({ wallet_balance: Number(referrerData.wallet_balance || 0) + Number(commission) })
           .eq('id', workerData.referred_by);
       }
     }

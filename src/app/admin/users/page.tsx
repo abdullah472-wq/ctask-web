@@ -78,10 +78,20 @@ export default function UsersManagementPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" />
       </div>
     );
   }
+
+  const getKycBadgeClasses = (status: string | null | undefined) => {
+    if (status === 'verified' || status === 'approved') {
+      return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800';
+    }
+    if (status === 'pending') {
+      return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800';
+    }
+    return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+  };
 
   return (
     <>
@@ -113,20 +123,25 @@ export default function UsersManagementPage() {
                     <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">ID: {user.id.substring(0,8)}...</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{new Date(user.created_at).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 font-bold text-brand-emerald">{Number(user.wallet_balance).toFixed(2)} ৳</td>
+                  <td className="px-6 py-4 font-bold text-brand-primary">{Number(user.wallet_balance).toFixed(2)} ৳</td>
                   <td className="px-6 py-4 text-slate-500 font-mono text-xs">{user.referred_by ? user.referred_by.substring(0,8) + '...' : '-'}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold capitalize border ${user.plan_type === 'premium' ? 'bg-brand-cyan/10 text-brand-cyan border-brand-cyan/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}>
-                      {user.plan_type}
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold capitalize border ${
+                      user.plan_type?.toLowerCase() === 'premium' 
+                        ? 'bg-[#5A189A]/10 text-[#5A189A] border-[#5A189A]/20 dark:bg-[#7B2CBF]/20 dark:text-[#7B2CBF] dark:border-[#7B2CBF]/30' 
+                        : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                    }`}>
+                      {user.plan_type || 'Free'}
+                      {user.plan_type?.toLowerCase() === 'premium' && <span>⚡</span>}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold capitalize border ${user.verification_status === 'verified' ? 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20' : user.verification_status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}>
-                      {user.verification_status}
+                    <span className={`px-2 py-1 rounded text-xs font-bold capitalize border ${getKycBadgeClasses(user.kyc_status)}`}>
+                      {user.kyc_status || 'Unverified'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold border ${user.is_blocked ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20'}`}>
+                    <span className={`px-2 py-1 rounded text-xs font-bold border ${user.is_blocked ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-brand-primary/10 text-brand-primary border-brand-primary/20'}`}>
                       {user.is_blocked ? 'Blocked' : 'Active'}
                     </span>
                   </td>
@@ -145,7 +160,7 @@ export default function UsersManagementPage() {
                       <button
                         onClick={() => toggleBlockStatus(user.id, user.is_blocked)}
                         disabled={actionLoading === user.id}
-                        className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${user.is_blocked ? 'bg-brand-emerald/10 hover:bg-brand-emerald/20 text-brand-emerald' : 'bg-red-500/10 hover:bg-red-500/20 text-red-500'}`}
+                        className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${user.is_blocked ? 'bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary' : 'bg-red-500/10 hover:bg-red-500/20 text-red-500'}`}
                         title={user.is_blocked ? "Unblock User" : "Block User"}
                       >
                         {actionLoading === user.id ? <Loader2 className="w-4 h-4 animate-spin" /> : user.is_blocked ? <ShieldAlert className="w-4 h-4" /> : <ShieldBan className="w-4 h-4" />}
@@ -172,7 +187,7 @@ export default function UsersManagementPage() {
                   required
                   value={noticeTitle}
                   onChange={e => setNoticeTitle(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-cyan transition-colors"
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
                   placeholder="e.g. Warning: Invalid Proofs"
                 />
               </div>
@@ -182,7 +197,7 @@ export default function UsersManagementPage() {
                   required
                   value={noticeMessage}
                   onChange={e => setNoticeMessage(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-cyan transition-colors h-32 resize-none"
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors h-32 resize-none"
                   placeholder="Type your message here..."
                 />
               </div>
@@ -197,7 +212,7 @@ export default function UsersManagementPage() {
                 <button 
                   type="submit"
                   disabled={actionLoading === 'notice'}
-                  className="flex-[2] py-3 rounded-xl bg-brand-cyan text-dark-bg font-bold hover:opacity-90 transition-opacity flex justify-center items-center gap-2"
+                  className="flex-[2] py-3 rounded-xl bg-brand-accent text-dark-bg font-bold hover:opacity-90 transition-opacity flex justify-center items-center gap-2"
                 >
                   {actionLoading === 'notice' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} Send Notice
                 </button>

@@ -17,7 +17,9 @@ import {
   CreditCard,
   Users,
   Menu,
-  Settings
+  Settings,
+  History,
+  MessageSquare
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -25,6 +27,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [counts, setCounts] = useState({
+    kyc: 0,
+    withdrawals: 0,
+    proofs: 0,
+    tasks: 0,
+  });
 
   useEffect(() => {
     checkAdmin();
@@ -50,6 +58,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
       
+      // Fetch badge counts
+      const [kycRes, withdrawalsRes, proofsRes, tasksRes] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('kyc_status', 'pending'),
+        supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+      ]);
+
+      setCounts({
+        kyc: kycRes.count || 0,
+        withdrawals: withdrawalsRes.count || 0,
+        proofs: proofsRes.count || 0,
+        tasks: tasksRes.count || 0,
+      });
+
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -65,7 +88,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-dark-bg flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" />
       </div>
     );
   }
@@ -73,20 +96,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const sidebarLinks = [
     { label: 'Overview', href: '/admin', icon: BarChart3 },
     { label: 'Users', href: '/admin/users', icon: Users },
-    { label: 'Create Task', href: '/admin/create-task', icon: PlusCircle },
-    { label: 'Review Proofs', href: '/admin/review', icon: CheckCircle },
     { label: 'Manage Tasks', href: '/admin/manage-tasks', icon: ListTodo },
-    { label: 'KYC Reviews', href: '/admin/kyc-review', icon: ShieldAlert },
-    { label: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard },
+    { label: 'Pending Tasks', href: '/admin/pending-tasks', icon: ListTodo, badgeCount: counts.tasks },
+    { label: 'Create Task', href: '/admin/create-task', icon: PlusCircle },
+    { label: 'Review Proofs', href: '/admin/review', icon: CheckCircle, badgeCount: counts.proofs },
+    { label: 'Review History', href: '/admin/review-history', icon: History },
+    { label: 'KYC Reviews', href: '/admin/kyc-review', icon: ShieldAlert, badgeCount: counts.kyc },
     { label: 'Deposits', href: '/admin/deposits', icon: Landmark },
-    { label: 'Withdrawals', href: '/admin/withdrawals', icon: Landmark },
+    { label: 'Withdrawals', href: '/admin/withdrawals', icon: Landmark, badgeCount: counts.withdrawals },
+    { label: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard },
+    { label: 'Manage Reviews', href: '/admin/manage-reviews', icon: MessageSquare },
+    { label: 'Activity Logs', href: '/admin/activity-logs', icon: ListTodo },
     { label: 'Settings', href: '/admin/settings', icon: Settings },
   ];
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-slate-100 flex transition-colors">
       <Sidebar 
-        title="Ctask Admin" 
+        title="Ctask" 
         links={sidebarLinks} 
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
@@ -102,7 +129,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               <Menu className="w-6 h-6" />
             </button>
-            <h1 className="font-bold text-lg text-brand-cyan hidden md:block">Admin Panel</h1>
+            <h1 className="font-bold text-lg text-brand-accent hidden md:block">Admin Panel</h1>
           </div>
           
           <div className="flex items-center gap-6">

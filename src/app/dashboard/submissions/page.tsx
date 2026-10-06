@@ -51,7 +51,7 @@ export default function SubmissionsPage() {
 
   const getStatusColor = (status: string) => {
     switch(status) {
-      case 'approved': return 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20';
+      case 'approved': return 'bg-brand-primary/10 text-brand-primary border-brand-primary/20';
       case 'rejected': return 'bg-red-500/10 text-red-400 border-red-500/20';
       default: return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
     }
@@ -60,7 +60,7 @@ export default function SubmissionsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" />
       </div>
     );
   }
@@ -72,10 +72,10 @@ export default function SubmissionsPage() {
         <p className="text-slate-400">Track the status of your submitted task proofs.</p>
       </div>
 
-      <div className="bg-dark-card border border-slate-800 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white/5 text-slate-400 border-b border-slate-800">
+          <table className="w-full text-left text-sm text-slate-900 dark:text-slate-100">
+            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="px-6 py-4 font-medium">Task</th>
                 <th className="px-6 py-4 font-medium">Reward</th>
@@ -84,7 +84,7 @@ export default function SubmissionsPage() {
                 <th className="px-6 py-4 font-medium">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {submissions.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
@@ -93,9 +93,9 @@ export default function SubmissionsPage() {
                 </tr>
               ) : (
                 submissions.map((sub) => (
-                  <tr key={sub.id} className="hover:bg-white/5 transition-colors">
+                  <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 font-medium">{sub.tasks?.title}</td>
-                    <td className="px-6 py-4 text-brand-emerald font-bold">
+                    <td className="px-6 py-4 text-brand-primary font-bold">
                       {sub.tasks?.reward_amount?.toFixed(2)} ৳
                     </td>
                     <td className="px-6 py-4">
@@ -103,15 +103,15 @@ export default function SubmissionsPage() {
                         {sub.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 max-w-xs truncate text-slate-400">
+                    <td className="px-6 py-4 max-w-xs truncate text-slate-600 dark:text-slate-400">
                       {sub.proof_text}
                       {sub.proof_image_url && (
-                        <a href={sub.proof_image_url} target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline ml-2 inline-flex items-center gap-1">
+                        <a href={sub.proof_image_url} target="_blank" rel="noopener noreferrer" className="text-brand-accent hover:underline ml-2 inline-flex items-center gap-1">
                           <ExternalLink className="w-3 h-3" /> Image
                         </a>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-slate-400">
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
                       {new Date(sub.submitted_at).toLocaleDateString()}
                     </td>
                   </tr>

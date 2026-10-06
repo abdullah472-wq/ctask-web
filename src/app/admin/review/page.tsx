@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Loader2, Check, X, ExternalLink } from 'lucide-react';
+import { logAdminAction } from '@/utils/activityLogger';
 import Image from 'next/image';
 import { approveTaskSubmission } from '@/app/actions/approveTask';
 
@@ -42,7 +43,7 @@ export default function ReviewProofsPage() {
         proof_image_url,
         submitted_at,
         tasks:task_id (id, title, reward_amount, proof_instruction),
-        profiles:user_id (id, full_name)
+        profiles (id, full_name)
       `)
       .eq('status', 'pending')
       .order('submitted_at', { ascending: true });
@@ -91,7 +92,7 @@ export default function ReviewProofsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" />
       </div>
     );
   }
@@ -111,39 +112,41 @@ export default function ReviewProofsPage() {
           </div>
         ) : (
           submissions.map((sub) => (
-            <div key={sub.id} className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col lg:flex-row gap-6">
+            <div key={sub.id} className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row gap-6">
               
               <div className="flex-1 space-y-4">
                 <div>
-                  <h3 className="text-xl font-bold text-white mb-1">{sub.tasks?.title}</h3>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">{sub.tasks?.title}</h3>
                   <div className="flex gap-4 text-sm">
-                    <span className="text-brand-emerald font-bold">{sub.tasks?.reward_amount?.toFixed(2)} ৳</span>
+                    <span className="text-brand-primary font-bold">{sub.tasks?.reward_amount?.toFixed(2)} ৳</span>
                     <span className="text-slate-500">Worker: {sub.profiles?.full_name}</span>
                     <span className="text-slate-500">{new Date(sub.submitted_at).toLocaleDateString()}</span>
                   </div>
                 </div>
 
-                <div className="p-4 bg-black/30 rounded-xl border border-slate-800">
-                  <p className="text-xs text-slate-500 mb-1 uppercase font-bold tracking-wider">Instruction given:</p>
-                  <p className="text-sm text-slate-300">{sub.tasks?.proof_instruction}</p>
+                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Instruction given:</p>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">{sub.tasks?.proof_instruction}</p>
                 </div>
 
-                <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                  <p className="text-xs text-brand-cyan mb-1 uppercase font-bold tracking-wider">Submitted Text Proof:</p>
-                  <p className="text-sm text-white">{sub.proof_text}</p>
+                <div>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-4 block">Submitted Text Proof:</span>
+                  <p className="text-sm text-slate-800 dark:text-slate-200 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 mt-2">
+                    {sub.proof_text}
+                  </p>
                 </div>
               </div>
 
               <div className="lg:w-72 flex flex-col gap-4">
                 {sub.proof_image_url ? (
-                  <div className="aspect-video relative rounded-xl overflow-hidden bg-black/50 border border-slate-800 flex-shrink-0 group cursor-pointer" onClick={() => window.open(sub.proof_image_url, '_blank')}>
+                  <div className="aspect-video relative rounded-xl overflow-hidden bg-slate-100 dark:bg-black/50 border border-slate-200 dark:border-slate-800 flex-shrink-0 group cursor-pointer" onClick={() => window.open(sub.proof_image_url, '_blank')}>
                     <Image src={sub.proof_image_url} alt="Proof" fill className="object-cover group-hover:scale-105 transition-transform" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <ExternalLink className="w-6 h-6 text-white" />
                     </div>
                   </div>
                 ) : (
-                  <div className="aspect-video relative rounded-xl bg-white/5 border border-slate-800 border-dashed flex items-center justify-center text-sm text-slate-500">
+                  <div className="aspect-video relative rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800 border-dashed flex items-center justify-center text-sm text-slate-500">
                     No image provided
                   </div>
                 )}
@@ -159,7 +162,7 @@ export default function ReviewProofsPage() {
                   <button
                     onClick={() => handleApprove(sub)}
                     disabled={actionLoading === sub.id}
-                    className="flex-[2] py-2 rounded-xl bg-brand-emerald/10 hover:bg-brand-emerald/20 text-brand-emerald border border-brand-emerald/20 font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-[2] py-2 rounded-xl bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary border border-brand-primary/20 font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {actionLoading === sub.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                     Approve

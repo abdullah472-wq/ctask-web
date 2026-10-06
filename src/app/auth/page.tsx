@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { Mail, Lock, ArrowRight, Loader2, User, Gift } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -140,8 +141,15 @@ export default function AuthPage() {
 
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-cyan to-brand-emerald flex items-center justify-center font-bold text-white dark:text-dark-bg text-xl mx-auto mb-4 shadow-[0_0_20px_-5px_#00F2FE]">
-            C
+          <div className="flex justify-center mb-6">
+            <Image 
+              src="/branding.png"
+              alt="Ctask Branding"
+              width={400}
+              height={256}
+              className="h-64 w-auto"
+              priority
+            />
           </div>
           <h1 className="text-3xl font-bold mb-2">
             {isLogin ? 'Welcome Back' : 'Create an Account'}
@@ -171,7 +179,7 @@ export default function AuthPage() {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-all"
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
                     placeholder="John Doe"
                   />
                 </div>
@@ -189,7 +197,7 @@ export default function AuthPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-all"
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
                   placeholder="you@example.com"
                 />
               </div>
@@ -206,13 +214,13 @@ export default function AuthPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-all"
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
                   placeholder="••••••••"
                 />
               </div>
               {isLogin && (
                 <div className="flex justify-end mt-2">
-                  <Link href="/auth/forgot-password" className="text-sm text-brand-cyan hover:text-brand-emerald transition-colors font-medium">
+                  <Link href="/auth/forgot-password" className="text-sm text-brand-accent hover:text-brand-primary transition-colors font-medium">
                     Forgot Password?
                   </Link>
                 </div>
@@ -230,7 +238,7 @@ export default function AuthPage() {
                     type="text"
                     value={referralCode}
                     onChange={(e) => setReferralCode(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-all uppercase"
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl py-3 pl-11 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all uppercase"
                     placeholder="ENTER CODE"
                   />
                 </div>
@@ -240,7 +248,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-cyan to-brand-emerald text-dark-bg font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

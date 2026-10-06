@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
-import { Loader2, Copy, Users, CheckCircle, Clock, Download, Info } from 'lucide-react';
-import Image from 'next/image';
+import { Loader2, Copy, Users, CheckCircle, Clock, Download, Info, Star } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface DownlineUser {
   id: string;
@@ -15,10 +15,18 @@ interface DownlineUser {
 
 export default function ReferralsPage() {
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState('');
+  const [userName, setUserName] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [downline, setDownline] = useState<DownlineUser[]>([]);
   const [showTerms, setShowTerms] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  
+  // Review Form State
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -27,16 +35,19 @@ export default function ReferralsPage() {
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
+    
+    setUserId(session.user.id);
 
-    // Fetch user's referral code
+    // Fetch user's referral code and name
     const { data: profile } = await supabase
       .from('profiles')
-      .select('referral_code')
+      .select('referral_code, full_name')
       .eq('id', session.user.id)
       .single();
 
-    if (profile?.referral_code) {
-      setReferralCode(profile.referral_code);
+    if (profile) {
+      setReferralCode(profile.referral_code || '');
+      setUserName(profile.full_name || '');
     }
 
     // Fetch downline
@@ -49,6 +60,18 @@ export default function ReferralsPage() {
     if (users) {
       setDownline(users);
     }
+    
+    // Check if user has already submitted a review
+    const { data: existingReview } = await supabase
+      .from('testimonials')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .limit(1)
+      .maybeSingle();
+      
+    if (existingReview) {
+      setHasSubmittedReview(true);
+    }
 
     setLoading(false);
   };
@@ -59,11 +82,38 @@ export default function ReferralsPage() {
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
+  
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !reviewText.trim()) return;
+    
+    setSubmittingReview(true);
+    try {
+      const { error } = await supabase
+        .from('testimonials')
+        .insert({
+          user_id: userId,
+          user_name: userName,
+          rating: reviewRating,
+          review_text: reviewText,
+          status: 'pending'
+        });
+        
+      if (error) throw error;
+      
+      toast.success('Your review has been submitted for admin approval!');
+      setHasSubmittedReview(true);
+    } catch (error: any) {
+      toast.error('Failed to submit review: ' + error.message);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" />
       </div>
     );
   }
@@ -78,18 +128,18 @@ export default function ReferralsPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-12">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-brand-cyan/20 to-brand-emerald/20 border border-brand-cyan/30 rounded-3xl p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+      <div className="bg-gradient-to-r from-brand-accent/20 to-brand-primary/20 border border-brand-accent/30 rounded-3xl p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -z-10 -translate-y-1/2 translate-x-1/2" />
         
         <div className="max-w-2xl">
           <h1 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900 dark:text-white">Referral Program</h1>
           <p className="text-lg text-slate-700 dark:text-slate-300 mb-8 leading-relaxed">
-            Earn money on referrals who join Ctask. Get <span className="font-bold text-brand-emerald">5%</span> of each purchase and <span className="font-bold text-brand-cyan">5%</span> for each successfully completed job by your referrals.
+            Earn money on referrals who join Ctask. Get <span className="font-bold text-brand-primary">5%</span> of each purchase and <span className="font-bold text-brand-accent">5%</span> for each successfully completed job by your referrals.
           </p>
           <div className="flex flex-wrap items-center gap-4">
             <button 
               onClick={copyLink}
-              className="px-8 py-4 rounded-xl bg-gradient-to-r from-brand-cyan to-brand-emerald text-dark-bg font-bold hover:opacity-90 transition-opacity flex items-center gap-2 shadow-lg shadow-brand-cyan/20"
+              className="px-8 py-4 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold hover:opacity-90 transition-opacity flex items-center gap-2 shadow-lg shadow-brand-accent/20"
             >
               <Copy className="w-5 h-5" />
               Get Referral Link
@@ -106,8 +156,58 @@ export default function ReferralsPage() {
 
         <div className="hidden md:flex flex-col items-center justify-center p-6 bg-white/50 dark:bg-black/20 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-slate-800">
           <p className="text-sm font-bold text-slate-500 uppercase mb-2">Your Invite Code</p>
-          <div className="text-3xl font-black text-brand-cyan uppercase tracking-wider">{referralCode || 'N/A'}</div>
+          <div className="text-3xl font-black text-brand-accent uppercase tracking-wider">{referralCode || 'N/A'}</div>
         </div>
+      </div>
+
+      {/* Submit Review Card */}
+      <div className="bg-gradient-to-br from-[#5A189A]/10 to-[#7B2CBF]/5 border border-[#5A189A]/20 dark:border-[#7B2CBF]/30 rounded-3xl p-8 relative overflow-hidden">
+        {!hasSubmittedReview ? (
+          <div className="max-w-xl">
+            <h2 className="text-2xl font-bold mb-2 text-[#5A189A] dark:text-[#7B2CBF]">Love Ctask? Leave a Review!</h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">Tell us about your experience. Your feedback helps us improve and appears on our homepage.</p>
+            
+            <form onSubmit={handleReviewSubmit} className="space-y-4">
+              <div className="flex gap-1 mb-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button 
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewRating(star)}
+                    className="focus:outline-none transition-transform hover:scale-110"
+                  >
+                    <Star className={`w-8 h-8 ${star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
+                  </button>
+                ))}
+              </div>
+              
+              <textarea 
+                required
+                value={reviewText}
+                onChange={e => setReviewText(e.target.value)}
+                className="w-full bg-white dark:bg-dark-card border border-slate-300 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white focus:outline-none focus:border-[#5A189A] focus:ring-1 focus:ring-[#5A189A] h-32 resize-none transition-colors"
+                placeholder="Tell us about your experience..."
+              />
+              
+              <button 
+                type="submit"
+                disabled={submittingReview}
+                className="px-8 py-3 rounded-xl bg-[#5A189A] hover:bg-[#7B2CBF] text-white font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {submittingReview ? <Loader2 className="w-5 h-5 animate-spin" /> : <Star className="w-5 h-5" />}
+                Submit Review
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Thank you for your review!</h2>
+            <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+              We appreciate your feedback. Your review has been received and will be reviewed by our team.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Promotional Assets Section */}
@@ -120,12 +220,11 @@ export default function ReferralsPage() {
             <div key={idx} className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm group">
               <div className={`w-full ${asset.aspectRatio} bg-slate-100 dark:bg-slate-800/50 rounded-2xl mb-4 relative overflow-hidden border border-slate-200 dark:border-slate-800/50 flex items-center justify-center`}>
                 <span className="text-slate-400 font-medium">Placeholder</span>
-                {/* When real images exist: <Image src="..." fill className="object-cover" /> */}
               </div>
               <div className="px-2">
                 <h3 className="font-bold text-slate-900 dark:text-white mb-1">{asset.title}</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{asset.dimensions}</p>
-                <button className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-brand-cyan/10 dark:hover:bg-brand-cyan/10 text-slate-600 dark:text-slate-400 hover:text-teal-700 dark:hover:text-brand-cyan transition-colors flex items-center justify-center gap-2 font-medium text-sm border border-transparent hover:border-brand-cyan/30">
+                <button className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-brand-accent/10 dark:hover:bg-brand-accent/10 text-slate-600 dark:text-slate-400 hover:text-purple-700 dark:hover:text-brand-accent transition-colors flex items-center justify-center gap-2 font-medium text-sm border border-transparent hover:border-brand-accent/30">
                   <Download className="w-4 h-4" /> Download
                 </button>
               </div>
@@ -138,7 +237,7 @@ export default function ReferralsPage() {
       <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <h2 className="text-xl font-bold">Users in your downline</h2>
-          <div className="px-4 py-1.5 rounded-full bg-brand-cyan/10 text-brand-cyan font-bold text-sm">
+          <div className="px-4 py-1.5 rounded-full bg-brand-accent/10 text-brand-accent font-bold text-sm">
             Total: {downline.length}
           </div>
         </div>
@@ -151,7 +250,7 @@ export default function ReferralsPage() {
             {referralCode && (
               <button 
                 onClick={copyLink}
-                className="mt-6 px-6 py-3 rounded-xl bg-brand-cyan/10 text-brand-cyan font-bold hover:bg-brand-cyan/20 transition-colors"
+                className="mt-6 px-6 py-3 rounded-xl bg-brand-accent/10 text-brand-accent font-bold hover:bg-brand-accent/20 transition-colors"
               >
                 Copy Invite Link
               </button>
@@ -188,7 +287,7 @@ export default function ReferralsPage() {
                     </td>
                     <td className="p-4">
                       {user.verification_status === 'verified' ? (
-                        <span className="flex items-center gap-1.5 text-brand-emerald font-medium">
+                        <span className="flex items-center gap-1.5 text-brand-primary font-medium">
                           <CheckCircle className="w-4 h-4" /> Verified
                         </span>
                       ) : (
@@ -234,7 +333,7 @@ export default function ReferralsPage() {
 
       {showToast && (
         <div className="fixed bottom-4 right-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2 z-50 animate-in slide-in-from-bottom-5">
-          <CheckCircle className="w-5 h-5 text-brand-emerald" />
+          <CheckCircle className="w-5 h-5 text-brand-primary" />
           <span className="font-bold">Link copied!</span>
         </div>
       )}

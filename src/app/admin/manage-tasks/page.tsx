@@ -72,7 +72,7 @@ export default function ManageTasksPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" />
       </div>
     );
   }
@@ -107,18 +107,18 @@ export default function ManageTasksPage() {
                 tasks.map((task) => (
                   <tr key={task.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 font-medium">{task.title}</td>
-                    <td className="px-6 py-4 font-bold text-brand-emerald">${task.reward_amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 font-bold text-brand-primary">${task.reward_amount.toFixed(2)}</td>
                     <td className="px-6 py-4">
                       {task.completed_slots} / {task.total_slots}
                       <div className="w-24 h-1.5 bg-slate-800 rounded-full mt-2 overflow-hidden">
                         <div 
-                          className="h-full bg-brand-cyan" 
+                          className="h-full bg-brand-accent" 
                           style={{ width: `${Math.min(100, (task.completed_slots / task.total_slots) * 100)}%` }} 
                         />
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${task.is_active ? 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${task.is_active ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                         {task.is_active ? 'Active' : 'Paused'}
                       </span>
                     </td>

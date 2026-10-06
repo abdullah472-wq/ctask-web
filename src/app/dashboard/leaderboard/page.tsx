@@ -54,7 +54,7 @@ export default function LeaderboardPage() {
       case 2:
         return 'bg-gradient-to-r from-amber-700/20 to-amber-800/20 border-amber-700 shadow-[0_0_15px_rgba(180,83,9,0.1)] text-amber-600 dark:text-amber-500'; // Bronze
       default:
-        return 'bg-white dark:bg-dark-card border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400';
+        return 'bg-white dark:bg-[#0f172a] border-slate-200 dark:border-slate-800 shadow-sm';
     }
   };
 
@@ -67,14 +67,14 @@ export default function LeaderboardPage() {
       case 2:
         return <Award className="w-7 h-7 text-amber-600 dark:text-amber-500" />;
       default:
-        return <div className="w-7 h-7 flex items-center justify-center font-bold">{index + 1}</div>;
+        return <div className="w-7 h-7 flex items-center justify-center font-bold text-slate-500 dark:text-slate-400">{index + 1}</div>;
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" />
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default function LeaderboardPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-10 text-center">
-        <div className="w-16 h-16 bg-brand-cyan/10 text-brand-cyan rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 bg-brand-accent/10 text-brand-accent rounded-full flex items-center justify-center mx-auto mb-4">
           <Trophy className="w-8 h-8" />
         </div>
         <h1 className="text-3xl font-bold mb-3">Top Earners Leaderboard</h1>
@@ -99,7 +99,7 @@ export default function LeaderboardPage() {
           return (
             <div 
               key={leader.id} 
-              className={`w-full box-border flex items-center justify-between gap-2 p-4 rounded-2xl border-2 transition-transform hover:-translate-y-1 ${rankStyle} ${isMe ? 'ring-2 ring-brand-cyan ring-offset-2 ring-offset-slate-50 dark:ring-offset-dark-bg' : ''}`}
+              className={`w-full box-border flex items-center justify-between gap-2 p-4 rounded-2xl border-2 transition-transform hover:-translate-y-1 ${rankStyle} ${isMe ? 'ring-2 ring-brand-accent ring-offset-2 ring-offset-slate-50 dark:ring-offset-dark-bg' : ''}`}
             >
               <div className="flex flex-1 items-center gap-2 min-w-0">
                 <div className="w-8 sm:w-12 flex-shrink-0 flex justify-center items-center">
@@ -111,17 +111,17 @@ export default function LeaderboardPage() {
                     {leader.full_name.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <h3 className={`font-bold text-base sm:text-lg ${index < 3 ? '' : 'text-slate-900 dark:text-white'} flex items-center gap-2 min-w-0`}>
+                    <h3 className={`font-bold text-base sm:text-lg ${index < 3 ? '' : 'text-slate-800 dark:text-slate-100'} flex items-center gap-2 min-w-0`}>
                       <span className="truncate">{maskName(leader.full_name)}</span>
-                      {isMe && <span className="flex-shrink-0 text-xs bg-brand-cyan text-dark-bg px-2 py-0.5 rounded-full uppercase tracking-wider font-black">You</span>}
+                      {isMe && <span className="flex-shrink-0 text-xs bg-brand-accent text-dark-bg px-2 py-0.5 rounded-full uppercase tracking-wider font-black">You</span>}
                     </h3>
                   </div>
                 </div>
               </div>
 
               <div className="flex-shrink-0 text-right">
-                <p className="text-xs sm:text-sm font-medium opacity-80 uppercase tracking-wider mb-1">Total Earned</p>
-                <div className={`text-base sm:text-2xl font-black font-mono ${index < 3 ? '' : 'text-brand-emerald'}`}>
+                <p className={`text-xs sm:text-sm font-medium uppercase tracking-wider mb-1 ${index < 3 ? 'opacity-80' : 'text-slate-500 dark:text-slate-400'}`}>Total Earned</p>
+                <div className={`text-base sm:text-2xl font-black font-mono ${index < 3 ? '' : 'text-slate-800 dark:text-slate-100'}`}>
                   {Number(leader.total_earned).toLocaleString()} ৳
                 </div>
               </div>

@@ -19,6 +19,7 @@ export default function CreateTaskPage() {
     category_id: '',
     subcategory_id: '',
     is_premium: false,
+    expires_at: '',
   });
 
   const [categories, setCategories] = useState<any[]>([]);
@@ -57,7 +58,7 @@ export default function CreateTaskPage() {
       .insert({
         title: formData.title,
         description: formData.description,
-        task_url: formData.task_url,
+        task_url: formData.task_url || null,
         reward_amount: Number(formData.reward_amount),
         total_slots: Number(formData.total_slots),
         completed_slots: 0,
@@ -65,6 +66,7 @@ export default function CreateTaskPage() {
         category_id: formData.category_id,
         subcategory_id: formData.subcategory_id,
         is_premium: formData.is_premium,
+        expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : null,
         is_active: true
       });
 
@@ -119,7 +121,7 @@ export default function CreateTaskPage() {
                   required
                   className="w-full bg-transparent dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-xl p-3 focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors"
                 >
-                  <option value="" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Select Category</option>
+                  <option value="" disabled hidden className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Select Category</option>
                   {categories.map(c => (
                     <option key={c.id} value={c.id} className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">{c.name}</option>
                   ))}
@@ -136,7 +138,7 @@ export default function CreateTaskPage() {
                   disabled={!formData.category_id}
                   className="w-full bg-transparent dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-xl p-3 focus:outline-none focus:border-[#00F2FE] focus:ring-1 focus:ring-[#00F2FE] transition-colors disabled:opacity-50"
                 >
-                  <option value="" className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Select Subcategory</option>
+                  <option value="" disabled hidden className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">Select Subcategory</option>
                   {subcategories.map(sc => (
                     <option key={sc.id} value={sc.id} className="bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100">{sc.name}</option>
                   ))}
@@ -151,7 +153,7 @@ export default function CreateTaskPage() {
                 required
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-cyan transition-colors"
+                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
                 placeholder="e.g. Subscribe to YouTube Channel"
               />
             </div>
@@ -163,22 +165,34 @@ export default function CreateTaskPage() {
                 required
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-cyan transition-colors h-24 resize-none"
+                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors h-24 resize-none"
                 placeholder="Explain what the worker needs to do..."
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Target URL</label>
-              <input 
-                type="url"
-                name="task_url"
-                required
-                value={formData.task_url}
-                onChange={handleChange}
-                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-cyan transition-colors"
-                placeholder="https://..."
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Target URL (Optional)</label>
+                <input 
+                  type="url"
+                  name="task_url"
+                  value={formData.task_url}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Expiry Date (Optional)</label>
+                <input 
+                  type="datetime-local"
+                  name="expires_at"
+                  value={formData.expires_at}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors [color-scheme:light] dark:[color-scheme:dark]"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -192,7 +206,7 @@ export default function CreateTaskPage() {
                   required
                   value={formData.reward_amount}
                   onChange={handleChange}
-                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-cyan transition-colors"
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
                   placeholder="5.00"
                 />
               </div>
@@ -205,7 +219,7 @@ export default function CreateTaskPage() {
                   required
                   value={formData.total_slots}
                   onChange={handleChange}
-                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-cyan transition-colors"
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
                   placeholder="100"
                 />
               </div>
@@ -218,7 +232,7 @@ export default function CreateTaskPage() {
                 required
                 value={formData.proof_instruction}
                 onChange={handleChange}
-                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-cyan transition-colors h-24 resize-none"
+                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors h-24 resize-none"
                 placeholder="What exactly should the worker submit as proof?"
               />
             </div>
@@ -227,7 +241,7 @@ export default function CreateTaskPage() {
           <button 
             type="submit"
             disabled={submitting}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-brand-cyan to-brand-emerald text-dark-bg font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
           >
             {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlusCircle className="w-5 h-5" />}
             Publish Task

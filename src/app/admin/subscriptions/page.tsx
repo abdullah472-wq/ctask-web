@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Loader2, Check, X, CreditCard } from 'lucide-react';
+import { logAdminAction } from '@/utils/activityLogger';
 
 export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
@@ -22,11 +23,15 @@ export default function SubscriptionsPage() {
         transaction_id,
         amount,
         created_at,
-        profiles:user_id (id, full_name, plan_type)
+        profiles (id, full_name, plan_type)
       `)
       .eq('status', 'pending')
       .order('created_at', { ascending: true });
 
+    if (error) {
+      console.error('Fetch error:', error);
+      toast.error('Error fetching data: ' + error.message);
+    }
     if (!error && data) {
       setRequests(data);
     }
@@ -70,7 +75,7 @@ export default function SubscriptionsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" />
       </div>
     );
   }
@@ -99,7 +104,7 @@ export default function SubscriptionsPage() {
               {requests.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                    <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50 text-brand-cyan" />
+                    <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50 text-brand-accent" />
                     No pending subscription requests.
                   </td>
                 </tr>
@@ -108,8 +113,8 @@ export default function SubscriptionsPage() {
                   <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-slate-700 dark:text-slate-200">
                     <td className="px-6 py-4 font-bold">{req.profiles?.full_name}</td>
                     <td className="px-6 py-4 capitalize">{req.profiles?.plan_type}</td>
-                    <td className="px-6 py-4 font-mono text-brand-cyan bg-brand-cyan/10 px-2 py-1 rounded inline-block mt-3">{req.transaction_id}</td>
-                    <td className="px-6 py-4 font-bold text-brand-emerald">{req.amount} ৳</td>
+                    <td className="px-6 py-4 font-mono text-brand-accent bg-brand-accent/10 px-2 py-1 rounded inline-block mt-3">{req.transaction_id}</td>
+                    <td className="px-6 py-4 font-bold text-brand-primary">{req.amount} ৳</td>
                     <td className="px-6 py-4 text-slate-500">{new Date(req.created_at).toLocaleDateString()}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
@@ -123,7 +128,7 @@ export default function SubscriptionsPage() {
                         <button
                           onClick={() => handleApprove(req)}
                           disabled={actionLoading === req.id}
-                          className="px-4 py-2 rounded-lg bg-brand-emerald/10 hover:bg-brand-emerald/20 text-brand-emerald font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+                          className="px-4 py-2 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
                           {actionLoading === req.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                           Approve

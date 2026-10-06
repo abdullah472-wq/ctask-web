@@ -20,6 +20,9 @@ import { Toaster } from 'react-hot-toast';
 export const metadata: Metadata = {
   title: "Ctask - Complete Tasks & Earn",
   description: "Complete simple tasks and earn real money on Ctask.",
+  icons: {
+    icon: '/icon.png',
+  },
 };
 
 export default function RootLayout({

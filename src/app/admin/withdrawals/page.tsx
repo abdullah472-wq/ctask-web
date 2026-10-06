@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Landmark, CheckCircle, Loader2, XCircle } from 'lucide-react';
+import { logAdminAction } from '@/utils/activityLogger';
 import { supabase } from '@/utils/supabase';
 import { approveWithdrawal, rejectWithdrawal } from '@/app/actions/withdrawals';
 import toast from 'react-hot-toast';
@@ -71,7 +72,7 @@ export default function WithdrawalsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" />
       </div>
     );
   }
@@ -107,12 +108,12 @@ export default function WithdrawalsPage() {
                 withdrawals.map((w) => (
                   <tr key={w.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors border-b border-slate-100 dark:border-slate-800/50">
                     <td className="px-6 py-4 font-medium">{w.profiles?.full_name || 'Unknown User'}</td>
-                    <td className="px-6 py-4 font-bold text-brand-emerald">{Number(w.amount).toFixed(2)} ৳</td>
+                    <td className="px-6 py-4 font-bold text-brand-primary">{Number(w.amount).toFixed(2)} ৳</td>
                     <td className="px-6 py-4">{w.method}</td>
                     <td className="px-6 py-4 font-mono text-slate-400">{w.account_number}</td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold border capitalize ${
-                        w.status === 'paid' ? 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20' : 
+                        w.status === 'paid' ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20' : 
                         w.status === 'rejected' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 
                         'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
                       }`}>
@@ -125,7 +126,7 @@ export default function WithdrawalsPage() {
                           <button 
                             onClick={() => handleMarkPaid(w)}
                             disabled={processingId === w.id}
-                            className="px-4 py-2 rounded-lg bg-brand-cyan/10 hover:bg-brand-cyan/20 text-brand-cyan font-bold transition-colors disabled:opacity-50"
+                            className="px-4 py-2 rounded-lg bg-brand-accent/10 hover:bg-brand-accent/20 text-brand-accent font-bold transition-colors disabled:opacity-50"
                           >
                             {processingId === w.id ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Approve'}
                           </button>

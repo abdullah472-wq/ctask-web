@@ -61,7 +61,15 @@ export default function AdminSettingsPage() {
       }
       
       if (data) {
-        setSettings((prev: any) => ({ ...prev, ...data }));
+        // Strip null values so default empty strings are preserved and React doesn't complain about null input values
+        const cleanData = Object.entries(data).reduce((acc: any, [key, value]) => {
+          if (value !== null) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {});
+        
+        setSettings((prev: any) => ({ ...prev, ...cleanData }));
       }
     } catch (error: any) {
       console.error('Error fetching settings:', error);
@@ -141,7 +149,7 @@ export default function AdminSettingsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-[#00F2FE]'
+                  ? 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-[#00F2FE]'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200'
               }`}
             >

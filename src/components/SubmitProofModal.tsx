@@ -122,8 +122,8 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
         </div>
         
         <div className="p-6 overflow-y-auto custom-scrollbar flex-grow">
-          <div className="mb-6 p-4 rounded-xl bg-brand-cyan/5 border border-brand-cyan/20">
-            <h4 className="font-bold text-brand-cyan mb-1">{task.title}</h4>
+          <div className="mb-6 p-4 rounded-xl bg-brand-accent/5 border border-brand-accent/20">
+            <h4 className="font-bold text-brand-accent mb-1">{task.title}</h4>
             <div className="flex items-center gap-2 text-sm mt-3">
               <LinkIcon className="w-4 h-4 text-slate-400" />
               <a href={task.task_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline break-all">
@@ -143,7 +143,7 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
 
           {checkingLimit ? (
             <div className="flex justify-center p-8">
-              <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
+              <Loader2 className="w-8 h-8 text-brand-accent animate-spin" />
             </div>
           ) : limitReached ? (
             <div className="bg-red-500/10 border border-red-500/30 p-6 rounded-2xl text-center">
@@ -172,14 +172,14 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
                   required
                   value={proofText}
                   onChange={e => setProofText(e.target.value)}
-                  className="w-full bg-white/5 border border-slate-800 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-cyan transition-colors h-24 resize-none"
+                  className="w-full bg-white/5 border border-slate-800 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-accent transition-colors h-24 resize-none"
                   placeholder="Enter required text proof (username, email used, etc.)"
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Screenshot Proof (Optional)</label>
-                <div className="relative border-2 border-dashed border-slate-800 rounded-xl p-6 text-center hover:border-brand-cyan/50 transition-colors bg-white/5">
+                <div className="relative border-2 border-dashed border-slate-800 rounded-xl p-6 text-center hover:border-brand-accent/50 transition-colors bg-white/5">
                   <input
                     type="file"
                     accept="image/*"
@@ -208,7 +208,7 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
             type="submit"
             form="proofForm"
             disabled={submitting || checkingLimit || limitReached}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-cyan to-brand-emerald text-dark-bg font-bold flex items-center gap-2 hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold flex items-center gap-2 hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
             Submit Proof

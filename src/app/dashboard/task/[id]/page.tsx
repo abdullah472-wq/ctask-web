@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
-import { Loader2, ArrowLeft, CheckCircle, Clock, Link as LinkIcon, Camera, Crown, Folder, Upload, Users } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle, Clock, Link as LinkIcon, Camera, Crown, Folder, Upload, Users, Copy } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -36,6 +36,7 @@ export default function TaskDetailsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [checkingLimit, setCheckingLimit] = useState(true);
+  const [existingSubmission, setExistingSubmission] = useState<{status: string} | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -48,12 +49,26 @@ export default function TaskDetailsPage() {
     if (session) {
       setUserId(session.user.id);
       await fetchProfile(session.user.id);
+      await checkExistingSubmission(session.user.id, id);
     } else {
       router.push('/auth');
       return;
     }
 
     await fetchTask();
+  };
+
+  const checkExistingSubmission = async (uid: string, taskId: string) => {
+    const { data } = await supabase
+      .from('task_submissions')
+      .select('status')
+      .eq('user_id', uid)
+      .eq('task_id', taskId)
+      .maybeSingle();
+      
+    if (data) {
+      setExistingSubmission(data);
+    }
   };
 
   const fetchProfile = async (uid: string) => {
@@ -111,12 +126,32 @@ export default function TaskDetailsPage() {
     }
   };
 
+  const copyToClipboard = () => {
+    if (task?.task_url) {
+      navigator.clipboard.writeText(task.task_url);
+      toast.success('Task link copied to clipboard!');
+    }
+  };
+
   const handleSubmitProof = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId || !task) return;
     setSubmitting(true);
 
     try {
+      const { data: existingCheck } = await supabase
+        .from('task_submissions')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('task_id', task.id)
+        .maybeSingle();
+
+      if (existingCheck) {
+        toast.error('You have already submitted this task.');
+        setSubmitting(false);
+        return;
+      }
+
       let proofImageUrl = '';
       if (proofFile) {
         const fileExt = proofFile.name.split('.').pop();
@@ -161,7 +196,7 @@ export default function TaskDetailsPage() {
   if (loading || checkingLimit) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 text-brand-cyan animate-spin" />
+        <Loader2 className="w-10 h-10 text-brand-accent animate-spin" />
         <p className="text-slate-500 font-medium animate-pulse">Loading task details...</p>
       </div>
     );
@@ -175,7 +210,7 @@ export default function TaskDetailsPage() {
         </div>
         <h1 className="text-3xl font-bold mb-4">Task Not Found</h1>
         <p className="text-slate-500 mb-8">This task may have been deleted or the link is invalid.</p>
-        <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-brand-cyan/10 text-brand-cyan font-bold hover:bg-brand-cyan/20 transition-colors inline-flex items-center gap-2">
+        <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-brand-accent/10 text-brand-accent font-bold hover:bg-brand-accent/20 transition-colors inline-flex items-center gap-2">
           <ArrowLeft className="w-5 h-5" /> Back to Dashboard
         </Link>
       </div>
@@ -187,7 +222,7 @@ export default function TaskDetailsPage() {
   const isLocked = task.is_premium && userPlan !== 'premium';
 
   let status = 'Available';
-  let statusColor = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+  let statusColor = 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20';
 
   if (isCompleted) {
     status = 'Completed';
@@ -199,7 +234,7 @@ export default function TaskDetailsPage() {
 
   return (
     <div className="max-w-5xl mx-auto pb-12 mt-4">
-      <Link href="/dashboard" className="inline-flex items-center gap-2 text-slate-500 hover:text-teal-700 dark:hover:text-brand-cyan font-medium mb-6 transition-colors">
+      <Link href="/dashboard" className="inline-flex items-center gap-2 text-slate-500 hover:text-purple-700 dark:hover:text-brand-accent font-medium mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Tasks
       </Link>
 
@@ -230,8 +265,8 @@ export default function TaskDetailsPage() {
               {task.title}
             </h1>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-              <div className="p-4 rounded-2xl bg-brand-cyan/5 border border-brand-cyan/20 flex flex-col justify-center">
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-4 mb-4">
+              <div className="p-4 rounded-2xl bg-brand-accent/5 border border-brand-accent/20 flex flex-col justify-center">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Reward</span>
                 <span className="text-2xl font-black text-[#00F2FE]">{task.reward_amount.toFixed(2)} ৳</span>
               </div>
@@ -242,18 +277,29 @@ export default function TaskDetailsPage() {
                   <span className="font-bold text-lg">{task.completed_slots}/{task.total_slots}</span>
                 </div>
               </div>
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-slate-800 flex flex-col justify-center sm:col-span-2">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Task Link</span>
-                <a href={task.task_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-teal-700 dark:hover:text-brand-cyan transition-colors font-medium truncate">
-                  <LinkIcon className="w-4 h-4 shrink-0" />
-                  <span className="truncate">{task.task_url}</span>
-                </a>
+            </div>
+
+            <div className="w-full mb-8">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Task Link</span>
+                  <a href={task.task_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-purple-700 dark:hover:text-brand-accent transition-colors font-medium truncate">
+                    <LinkIcon className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{task.task_url}</span>
+                  </a>
+                </div>
+                <button 
+                  onClick={copyToClipboard}
+                  className="flex items-center justify-center gap-2 px-4 py-2 shrink-0 bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Copy className="w-4 h-4 text-slate-400" /> Copy
+                </button>
               </div>
             </div>
 
             <div className="mb-8">
               <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-brand-emerald" /> Task Instructions
+                <CheckCircle className="w-5 h-5 text-brand-primary" /> Task Instructions
               </h3>
               <div className="prose prose-slate dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50 whitespace-pre-wrap">
                 {task.description}
@@ -262,7 +308,7 @@ export default function TaskDetailsPage() {
 
             <div>
               <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
-                <Camera className="w-5 h-5 text-brand-cyan" /> Proof Requirements
+                <Camera className="w-5 h-5 text-brand-accent" /> Proof Requirements
               </h3>
               <div className="text-sm text-slate-600 dark:text-slate-300 bg-blue-500/5 p-5 rounded-2xl border border-blue-500/10 whitespace-pre-wrap">
                 {task.proof_instruction}
@@ -276,7 +322,18 @@ export default function TaskDetailsPage() {
           <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm sticky top-28">
             <h2 className="text-xl font-bold mb-6">Submit Your Work</h2>
             
-            {isLocked ? (
+            {existingSubmission ? (
+              <div className="bg-indigo-500/10 border border-indigo-500/30 p-6 rounded-2xl text-center">
+                <CheckCircle className="w-10 h-10 text-indigo-500 mx-auto mb-3" />
+                <h4 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mb-2">Already Submitted</h4>
+                <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">
+                  You have already submitted proof for this task. Your submission status is: <span className="font-bold uppercase text-indigo-600 dark:text-indigo-400">{existingSubmission.status}</span>.
+                </p>
+                <Link href="/dashboard/submissions" className="block px-6 py-3 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-white font-bold w-full hover:opacity-90 transition-opacity">
+                  View My Submissions
+                </Link>
+              </div>
+            ) : isLocked ? (
               <div className="bg-yellow-500/10 border border-yellow-500/30 p-6 rounded-2xl text-center">
                 <Crown className="w-10 h-10 text-yellow-500 mx-auto mb-3" />
                 <h4 className="text-lg font-bold text-yellow-600 dark:text-yellow-500 mb-2">Premium Task</h4>
@@ -316,24 +373,24 @@ export default function TaskDetailsPage() {
                     required
                     value={proofText}
                     onChange={e => setProofText(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-all h-32 resize-none"
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all h-32 resize-none"
                     placeholder="Enter required text proof (e.g. username, email, ID)"
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Screenshot (Optional)</label>
-                  <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center hover:border-brand-cyan transition-colors bg-slate-50 dark:bg-white/5 group">
+                  <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center hover:border-brand-accent transition-colors bg-slate-50 dark:bg-white/5 group">
                     <input
                       type="file"
                       accept="image/*"
                       onChange={e => setProofFile(e.target.files?.[0] || null)}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-brand-cyan transition-colors" />
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-brand-accent transition-colors" />
                     <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
                       {proofFile ? (
-                        <span className="text-brand-emerald flex items-center justify-center gap-1"><CheckCircle className="w-4 h-4"/> {proofFile.name}</span>
+                        <span className="text-brand-primary flex items-center justify-center gap-1"><CheckCircle className="w-4 h-4"/> {proofFile.name}</span>
                       ) : (
                         "Click or drag image to upload"
                       )}
@@ -344,7 +401,7 @@ export default function TaskDetailsPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-brand-cyan to-brand-emerald text-dark-bg font-bold flex items-center justify-center gap-2 hover:opacity-90 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all shadow-lg shadow-brand-cyan/20"
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all shadow-lg shadow-brand-accent/20"
                 >
                   {submitting ? (
                     <>
