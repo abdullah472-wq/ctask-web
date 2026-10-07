@@ -29,16 +29,25 @@ export default function AdminTicketsPage() {
   };
 
   const handleResolve = async (id: string) => {
-    const { error } = await supabase
-      .from('support_tickets')
-      .update({ status: 'resolved' })
-      .eq('id', id);
+    try {
+      const { data, error } = await supabase
+        .from('support_tickets')
+        .update({ status: 'resolved' })
+        .eq('id', id)
+        .select();
+        
+      if (error) throw error;
       
-    if (error) {
-      toast.error('Failed to resolve ticket');
-    } else {
-      toast.success('Ticket marked as resolved');
-      setTickets(tickets.map(t => t.id === id ? { ...t, status: 'resolved' } : t));
+      if (!data || data.length === 0) {
+        throw new Error('Update failed. You may not have permission to modify this ticket.');
+      }
+      
+      toast.success('Ticket marked as resolved!');
+      // Re-fetch to guarantee sync with DB
+      fetchTickets();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to resolve ticket');
+      console.error('Resolve error:', err);
     }
   };
 
