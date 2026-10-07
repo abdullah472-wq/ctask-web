@@ -26,9 +26,11 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react';
+import { LifeBuoy } from 'lucide-react';
 import Link from 'next/link';
 import { Footer } from '@/components/Footer';
 import { UserAvatar } from '@/components/UserAvatar';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface Profile {
   id: string;
@@ -250,6 +252,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { label: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
 
     { label: 'Upgrade to Premium', href: '/dashboard/upgrade', icon: Crown },
+    { label: 'Support Tickets', href: '/dashboard/support', icon: LifeBuoy },
     { label: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 
@@ -367,8 +370,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {profile?.full_name}
                     {profile?.plan_type === 'premium' && <Crown className="w-3 h-3 text-yellow-500" />}
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">
-                    {profile?.verification_status === 'verified' ? '✅ Verified' : 'Unverified'}
+                  <p className={`text-xs font-medium capitalize flex items-center gap-1 mt-0.5 ${profile?.kyc_status === 'verified' ? 'text-green-600 dark:text-green-500' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {profile?.kyc_status === 'verified' ? (
+                      <><CheckCircle className="w-3 h-3" /> Verified</>
+                    ) : (
+                      profile?.kyc_status || 'Unverified'
+                    )}
                   </p>
                 </div>
               </button>

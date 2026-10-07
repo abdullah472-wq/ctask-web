@@ -2,29 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
-import { Users, FileCheck, CircleDollarSign, Loader2, Download, Landmark, ListTodo, ShieldAlert } from 'lucide-react';
-import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, Legend 
-} from 'recharts';
+import { Users, FileCheck, CircleDollarSign, Loader2, Download, Landmark, ListTodo, ShieldAlert, Ticket } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-
-// Mock Data for Admin Charts
-const tasksCompletedData = [
-  { name: 'Mon', completed: 12, rejected: 2 },
-  { name: 'Tue', completed: 19, rejected: 5 },
-  { name: 'Wed', completed: 15, rejected: 3 },
-  { name: 'Thu', completed: 25, rejected: 1 },
-  { name: 'Fri', completed: 22, rejected: 4 },
-  { name: 'Sat', completed: 30, rejected: 2 },
-  { name: 'Sun', completed: 28, rejected: 0 },
-];
-
-const financialData = [
-  { name: 'Payouts vs Pending', payouts: 450, pending: 120 }
-];
+import Link from 'next/link';
 
 export default function AdminOverviewPage() {
   const [loading, setLoading] = useState(true);
@@ -35,9 +18,13 @@ export default function AdminOverviewPage() {
     totalDeposits: 0,
     totalWithdrawals: 0,
     pendingTasks: 0,
+    activeTasks: 0,
     pendingKyc: 0,
     pendingWithdrawals: 0,
+    pendingTickets: 0,
   });
+  
+  const [recentUsers, setRecentUsers] = useState<any[]>([]);
 
   useEffect(() => {
     fetchStats();
@@ -50,9 +37,12 @@ export default function AdminOverviewPage() {
       profilesRes,
       depositsRes,
       withdrawalsTotalRes,
-      tasksRes,
+      tasksPendingRes,
+      tasksActiveRes,
       kycRes,
-      withdrawalsPendingRes
+      withdrawalsPendingRes,
+      ticketsRes,
+      recentUsersRes
     ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -60,8 +50,11 @@ export default function AdminOverviewPage() {
       supabase.from('deposits').select('amount').eq('status', 'approved'),
       supabase.from('withdrawals').select('amount').eq('status', 'approved'),
       supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('kyc_status', 'pending'),
-      supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+      supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('support_tickets').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+      supabase.from('profiles').select('id, full_name, created_at').order('created_at', { ascending: false }).limit(5)
     ]);
 
     let totalPaid = 0;
@@ -85,10 +78,17 @@ export default function AdminOverviewPage() {
       totalPaid: totalPaid,
       totalDeposits: totalDeposits,
       totalWithdrawals: totalWithdrawals,
-      pendingTasks: tasksRes.count || 0,
+      pendingTasks: tasksPendingRes.count || 0,
+      activeTasks: tasksActiveRes.count || 0,
       pendingKyc: kycRes.count || 0,
       pendingWithdrawals: withdrawalsPendingRes.count || 0,
+      pendingTickets: ticketsRes.count || 0,
     });
+    
+    if (recentUsersRes.data) {
+      setRecentUsers(recentUsersRes.data);
+    }
+    
     setLoading(false);
   };
 
@@ -96,12 +96,10 @@ export default function AdminOverviewPage() {
     const element = document.getElementById('admin-stats-container');
     if (!element) return;
     
-    // Add print class for styles
     document.body.classList.add('printing');
     
     try {
       toast.loading('Generating System Report...', { id: 'pdf-toast' });
-      // Remove dark mode temporarily to ensure clean light theme print
       const isDark = document.documentElement.classList.contains('dark');
       if (isDark) document.documentElement.classList.remove('dark');
       
@@ -118,7 +116,6 @@ export default function AdminOverviewPage() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      // Inject Custom Header text
       pdf.setFontSize(22);
       pdf.setTextColor('#5A189A');
       pdf.text('Ctask Global System Report', 15, 20);
@@ -127,7 +124,6 @@ export default function AdminOverviewPage() {
       pdf.setTextColor('#64748b');
       pdf.text(`Generated at: ${new Date().toLocaleString()}`, 15, 28);
 
-      // Add Image after header (shifted down)
       pdf.addImage(imgData, 'PNG', 0, 35, pdfWidth, pdfHeight);
       
       const safeDate = new Date().toISOString().split('T')[0];
@@ -149,7 +145,6 @@ export default function AdminOverviewPage() {
     );
   }
 
-  // Custom Tooltip for Recharts to match the dark theme
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -165,6 +160,8 @@ export default function AdminOverviewPage() {
     }
     return null;
   };
+
+  const pendingWithdrawalAmountMock = 120; // In a real scenario, sum up pending amounts
 
   return (
     <>
@@ -238,84 +235,94 @@ export default function AdminOverviewPage() {
         </div>
 
         {/* Pending Action Counts */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg"><FileCheck className="w-5 h-5"/></div>
-              <span className="font-medium text-slate-600 dark:text-slate-300">Pending Proofs</span>
+        <div className="grid md:grid-cols-5 gap-6 mb-8">
+          <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg"><ListTodo className="w-5 h-5"/></div>
+                <span className="font-medium text-slate-600 dark:text-slate-300">Active Tasks</span>
+              </div>
             </div>
-            <span className="font-bold text-xl text-slate-900 dark:text-white">{stats.pendingProofs}</span>
+            <span className="font-bold text-2xl text-slate-900 dark:text-white">{stats.activeTasks}</span>
           </div>
 
-          <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg"><ListTodo className="w-5 h-5"/></div>
-              <span className="font-medium text-slate-600 dark:text-slate-300">Pending Tasks</span>
+          <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg"><FileCheck className="w-5 h-5"/></div>
+                <span className="font-medium text-slate-600 dark:text-slate-300">Pending Proofs</span>
+              </div>
             </div>
-            <span className="font-bold text-xl text-slate-900 dark:text-white">{stats.pendingTasks}</span>
+            <span className="font-bold text-2xl text-slate-900 dark:text-white">{stats.pendingProofs}</span>
           </div>
 
-          <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg"><ShieldAlert className="w-5 h-5"/></div>
-              <span className="font-medium text-slate-600 dark:text-slate-300">Pending KYC</span>
+          <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg"><ShieldAlert className="w-5 h-5"/></div>
+                <span className="font-medium text-slate-600 dark:text-slate-300">Pending KYC</span>
+              </div>
             </div>
-            <span className="font-bold text-xl text-slate-900 dark:text-white">{stats.pendingKyc}</span>
+            <span className="font-bold text-2xl text-slate-900 dark:text-white">{stats.pendingKyc}</span>
           </div>
 
-          <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg"><CircleDollarSign className="w-5 h-5"/></div>
-              <span className="font-medium text-slate-600 dark:text-slate-300">Pending Withdrawals</span>
+          <Link href="/admin/withdrawals" className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer block">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg"><CircleDollarSign className="w-5 h-5"/></div>
+                <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-brand-accent transition-colors">Pending W/D</span>
+              </div>
             </div>
-            <span className="font-bold text-xl text-slate-900 dark:text-white">{stats.pendingWithdrawals}</span>
-          </div>
+            <span className="font-bold text-2xl text-slate-900 dark:text-white">{stats.pendingWithdrawals}</span>
+          </Link>
+
+          <Link href="/admin/tickets" className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer block">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg"><Ticket className="w-5 h-5"/></div>
+                <span className="font-medium text-slate-600 dark:text-slate-300 group-hover:text-brand-accent transition-colors">Open Tickets</span>
+              </div>
+            </div>
+            <span className="font-bold text-2xl text-slate-900 dark:text-white">{stats.pendingTickets}</span>
+          </Link>
         </div>
 
-        {/* Charts Section */}
+        {/* Charts and Tables Section */}
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Line Chart: Tasks Completed */}
-          <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-            <h3 className="text-lg font-bold mb-6 text-slate-800 dark:text-slate-200">Task Statistics (Last 7 Days)</h3>
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={tasksCompletedData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" strokeOpacity={0.3} vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#64748b" 
-                    tick={{fill: '#64748b', fontSize: 12}} 
-                    axisLine={false} 
-                    tickLine={false} 
-                  />
-                  <YAxis 
-                    stroke="#64748b" 
-                    tick={{fill: '#64748b', fontSize: 12}} 
-                    axisLine={false} 
-                    tickLine={false} 
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="completed" 
-                    name="Completed Tasks" 
-                    stroke="#3b82f6" 
-                    strokeWidth={3}
-                    dot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }}
-                    activeDot={{ r: 6, fill: '#3b82f6', strokeWidth: 0 }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="rejected" 
-                    name="Rejected Tasks" 
-                    stroke="#ef4444" 
-                    strokeWidth={3}
-                    dot={{ r: 4, fill: '#ef4444', strokeWidth: 0 }}
-                    activeDot={{ r: 6, fill: '#ef4444', strokeWidth: 0 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+          {/* Recent Registrations Table */}
+          <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm overflow-hidden">
+            <h3 className="text-lg font-bold mb-6 text-slate-800 dark:text-slate-200 flex items-center justify-between">
+              Recent Registrations
+              <Link href="/admin/users" className="text-sm font-medium text-brand-accent hover:underline">View All</Link>
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800">
+                    <th className="py-3 px-4 text-sm font-semibold text-slate-500 dark:text-slate-400">Name</th>
+                    <th className="py-3 px-4 text-sm font-semibold text-slate-500 dark:text-slate-400">Join Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                  {recentUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                      <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">
+                        {user.full_name || 'Unknown User'}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                  {recentUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={2} className="py-8 text-center text-slate-500 dark:text-slate-400">
+                        No recent users found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -324,7 +331,7 @@ export default function AdminOverviewPage() {
             <h3 className="text-lg font-bold mb-6 text-slate-800 dark:text-slate-200">Financial Overview</h3>
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={financialData} barSize={80}>
+                <BarChart data={[{ name: 'Payouts vs Pending', payouts: stats.totalWithdrawals, pending: pendingWithdrawalAmountMock }]} barSize={80}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" strokeOpacity={0.3} vertical={false} />
                   <XAxis 
                     dataKey="name" 

@@ -7,42 +7,22 @@ import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-// Mock Data
-const MOCK_DATA = {
-  balance: 450.50,
-  totalEarned: 1250.00,
-  tasksCompleted: 145,
-  successRate: 92,
-  taskStats: {
-    totalStarted: 160,
-    pending: 10,
-    approved: 145,
-    rejected: 5
-  },
-  earningStats: {
-    totalEarned: 1250,
-    thisMonth: 350,
-    thisWeek: 120,
-    totalWithdrawn: 800
-  },
-  performance: {
-    approvalRate: 92,
-    avgCompletionTime: '15 mins'
-  },
-  activityFeed: [
-    { id: 1, type: 'approved', title: 'Task Approved', amount: '+৳ 15.00', reason: '', time: '2 hours ago' },
-    { id: 2, type: 'withdrawal', title: 'Withdrawal Processed', amount: '-৳ 200.00', reason: '', time: '1 day ago' },
-    { id: 3, type: 'rejected', title: 'Task Rejected', amount: '', reason: 'Invalid proof screenshot', time: '2 days ago' },
-    { id: 4, type: 'approved', title: 'Task Approved', amount: '+৳ 5.50', reason: '', time: '2 days ago' },
-  ]
-};
-
 export default function WorkerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [claiming, setClaiming] = useState(false);
   const [hideBanner, setHideBanner] = useState(false);
+  
+  // Dynamic Stats
+  const [taskStats, setTaskStats] = useState({
+    totalStarted: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
+  const [totalWithdrawn, setTotalWithdrawn] = useState(0);
+  const [activityFeed, setActivityFeed] = useState<any[]>([]);
 
   useEffect(() => {
     init();
@@ -53,6 +33,7 @@ export default function WorkerDashboardPage() {
     if (session) {
       setUserId(session.user.id);
       await fetchProfile(session.user.id);
+      await fetchStats(session.user.id);
     }
     setLoading(false);
   };
@@ -65,6 +46,59 @@ export default function WorkerDashboardPage() {
       .single();
       
     if (data) setUserProfile(data);
+  };
+
+  const fetchStats = async (uid: string) => {
+    // Fetch Task Submissions
+    const { data: submissions } = await supabase
+      .from('task_submissions')
+      .select('*, tasks(title, reward)')
+      .eq('worker_id', uid)
+      .order('created_at', { ascending: false });
+
+    // Fetch Withdrawals
+    const { data: withdrawals } = await supabase
+      .from('withdrawals')
+      .select('*')
+      .eq('user_id', uid)
+      .eq('status', 'approved');
+
+    let totalStarted = 0;
+    let pending = 0;
+    let approved = 0;
+    let rejected = 0;
+    
+    let feed: any[] = [];
+
+    if (submissions) {
+      totalStarted = submissions.length;
+      submissions.forEach(sub => {
+        if (sub.status === 'pending') pending++;
+        if (sub.status === 'approved') approved++;
+        if (sub.status === 'rejected') rejected++;
+      });
+      
+      // Top 5 recent submissions for activity feed
+      feed = submissions.slice(0, 5).map(sub => ({
+        id: sub.id,
+        type: sub.status,
+        title: sub.tasks?.title || 'Task Submission',
+        amount: sub.status === 'approved' ? `+৳ ${sub.tasks?.reward?.toFixed(2) || '0.00'}` : '',
+        reason: sub.rejection_reason || '',
+        time: new Date(sub.created_at).toLocaleDateString()
+      }));
+    }
+
+    let withdrawn = 0;
+    if (withdrawals) {
+      withdrawals.forEach(w => {
+        withdrawn += Number(w.amount);
+      });
+    }
+
+    setTaskStats({ totalStarted, pending, approved, rejected });
+    setTotalWithdrawn(withdrawn);
+    setActivityFeed(feed);
   };
 
   const handleClaimBonus = async () => {
@@ -92,12 +126,10 @@ export default function WorkerDashboardPage() {
     const element = document.getElementById('stats-container');
     if (!element) return;
     
-    // Add print class for styles
     document.body.classList.add('printing');
     
     try {
       toast.loading('Generating PDF...', { id: 'pdf-toast' });
-      // Remove dark mode temporarily to ensure clean light theme print
       const isDark = document.documentElement.classList.contains('dark');
       if (isDark) document.documentElement.classList.remove('dark');
       
@@ -148,6 +180,10 @@ export default function WorkerDashboardPage() {
       </div>
     );
   }
+
+  const successRate = taskStats.totalStarted > 0 ? Math.round((taskStats.approved / taskStats.totalStarted) * 100) : 0;
+  const balance = userProfile?.wallet_balance || 0;
+  const totalEarned = userProfile?.total_earned || 0;
 
   return (
     <>
@@ -206,7 +242,7 @@ export default function WorkerDashboardPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Available Balance</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">৳ {MOCK_DATA.balance.toFixed(2)}</h3>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">৳ {balance.toFixed(2)}</h3>
             </div>
           </div>
 
@@ -217,7 +253,7 @@ export default function WorkerDashboardPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Earned</p>
-              <h3 className="text-2xl font-bold text-[#5A189A]">৳ {MOCK_DATA.totalEarned.toFixed(2)}</h3>
+              <h3 className="text-2xl font-bold text-[#5A189A]">৳ {totalEarned.toFixed(2)}</h3>
             </div>
           </div>
 
@@ -228,7 +264,7 @@ export default function WorkerDashboardPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Tasks Completed</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{MOCK_DATA.tasksCompleted}</h3>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{taskStats.approved}</h3>
             </div>
           </div>
 
@@ -239,7 +275,7 @@ export default function WorkerDashboardPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Success Rate</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{MOCK_DATA.successRate}%</h3>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{successRate}%</h3>
             </div>
           </div>
         </div>
@@ -256,19 +292,19 @@ export default function WorkerDashboardPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-center">
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Total Started</p>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">{MOCK_DATA.taskStats.totalStarted}</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">{taskStats.totalStarted}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-center">
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Pending</p>
-                  <p className="text-xl font-bold text-amber-500">{MOCK_DATA.taskStats.pending}</p>
+                  <p className="text-xl font-bold text-amber-500">{taskStats.pending}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 text-center">
                   <p className="text-sm font-medium text-green-600/70 dark:text-green-500/70 mb-1">Approved</p>
-                  <p className="text-xl font-bold text-green-600 dark:text-green-500">{MOCK_DATA.taskStats.approved}</p>
+                  <p className="text-xl font-bold text-green-600 dark:text-green-500">{taskStats.approved}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 text-center">
                   <p className="text-sm font-medium text-red-600/70 dark:text-red-500/70 mb-1">Rejected</p>
-                  <p className="text-xl font-bold text-red-600 dark:text-red-500">{MOCK_DATA.taskStats.rejected}</p>
+                  <p className="text-xl font-bold text-red-600 dark:text-red-500">{taskStats.rejected}</p>
                 </div>
               </div>
             </div>
@@ -276,22 +312,14 @@ export default function WorkerDashboardPage() {
             {/* Earnings Statistics Section */}
             <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Earnings Breakdown</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 text-center border-r border-slate-200 dark:border-slate-800 last:border-0">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 text-center border-r border-slate-200 dark:border-slate-800">
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Total Earned</p>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">৳ {MOCK_DATA.earningStats.totalEarned}</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">৳ {totalEarned.toFixed(2)}</p>
                 </div>
-                <div className="p-4 text-center border-r border-slate-200 dark:border-slate-800 last:border-0">
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">This Month</p>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">৳ {MOCK_DATA.earningStats.thisMonth}</p>
-                </div>
-                <div className="p-4 text-center border-r border-slate-200 dark:border-slate-800 last:border-0">
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">This Week</p>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">৳ {MOCK_DATA.earningStats.thisWeek}</p>
-                </div>
-                <div className="p-4 text-center border-r border-slate-200 dark:border-slate-800 last:border-0">
+                <div className="p-4 text-center">
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Total Withdrawn</p>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">৳ {MOCK_DATA.earningStats.totalWithdrawn}</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">৳ {totalWithdrawn.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -309,21 +337,13 @@ export default function WorkerDashboardPage() {
                 <div className="relative w-32 h-32 flex items-center justify-center">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-100 dark:text-slate-800" />
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="#5A189A" strokeWidth="8" strokeDasharray={`${2 * Math.PI * 45}`} strokeDashoffset={`${2 * Math.PI * 45 * (1 - MOCK_DATA.performance.approvalRate / 100)}`} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#5A189A" strokeWidth="8" strokeDasharray={`${2 * Math.PI * 45}`} strokeDashoffset={`${2 * Math.PI * 45 * (1 - successRate / 100)}`} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
                   </svg>
                   <div className="absolute flex flex-col items-center">
-                    <span className="text-3xl font-bold text-slate-900 dark:text-white">{MOCK_DATA.performance.approvalRate}%</span>
+                    <span className="text-3xl font-bold text-slate-900 dark:text-white">{successRate}%</span>
                     <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Approval Rate</span>
                   </div>
                 </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Avg. Time</span>
-                </div>
-                <span className="font-bold text-slate-900 dark:text-white">{MOCK_DATA.performance.avgCompletionTime}</span>
               </div>
             </div>
 
@@ -331,34 +351,38 @@ export default function WorkerDashboardPage() {
             <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Recent Activity</h3>
               <div className="space-y-6">
-                {MOCK_DATA.activityFeed.map((activity, index) => (
-                  <div key={activity.id} className="relative flex gap-4">
-                    {index !== MOCK_DATA.activityFeed.length - 1 && (
-                      <div className="absolute left-4 top-10 bottom-[-1.5rem] w-px bg-slate-200 dark:bg-slate-800"></div>
-                    )}
-                    <div className="relative z-10 w-8 h-8 rounded-full bg-white dark:bg-[#0f172a] flex items-center justify-center shrink-0">
-                      {activity.type === 'approved' && <CheckCircle className="w-5 h-5 text-green-500" />}
-                      {activity.type === 'rejected' && <XCircle className="w-5 h-5 text-red-500" />}
-                      {activity.type === 'withdrawal' && <ArrowUpRight className="w-5 h-5 text-[#5A189A]" />}
-                    </div>
-                    <div className="flex-1 pb-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-bold text-sm text-slate-900 dark:text-white">{activity.title}</p>
-                        {activity.amount && (
-                          <span className={`font-bold text-sm ${activity.type === 'approved' ? 'text-green-600 dark:text-green-500' : 'text-slate-900 dark:text-white'}`}>
-                            {activity.amount}
-                          </span>
+                {activityFeed.length === 0 ? (
+                  <p className="text-slate-500 text-sm text-center">No recent activity found.</p>
+                ) : (
+                  activityFeed.map((activity, index) => (
+                    <div key={activity.id} className="relative flex gap-4">
+                      {index !== activityFeed.length - 1 && (
+                        <div className="absolute left-4 top-10 bottom-[-1.5rem] w-px bg-slate-200 dark:bg-slate-800"></div>
+                      )}
+                      <div className="relative z-10 w-8 h-8 rounded-full bg-white dark:bg-[#0f172a] flex items-center justify-center shrink-0">
+                        {activity.type === 'approved' && <CheckCircle className="w-5 h-5 text-green-500" />}
+                        {activity.type === 'rejected' && <XCircle className="w-5 h-5 text-red-500" />}
+                        {activity.type === 'pending' && <Clock className="w-5 h-5 text-amber-500" />}
+                      </div>
+                      <div className="flex-1 pb-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{activity.title}</p>
+                          {activity.amount && (
+                            <span className={`font-bold text-sm ${activity.type === 'approved' ? 'text-green-600 dark:text-green-500' : 'text-slate-900 dark:text-white'}`}>
+                              {activity.amount}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{activity.time}</p>
+                        {activity.reason && (
+                          <p className="text-xs text-red-500 mt-1 bg-red-50 dark:bg-red-900/10 p-2 rounded-md border border-red-100 dark:border-red-900/30">
+                            Reason: {activity.reason}
+                          </p>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{activity.time}</p>
-                      {activity.reason && (
-                        <p className="text-xs text-red-500 mt-1 bg-red-50 dark:bg-red-900/10 p-2 rounded-md border border-red-100 dark:border-red-900/30">
-                          Reason: {activity.reason}
-                        </p>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 

@@ -23,6 +23,7 @@ const initialEarningsData = [
 export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [chartData, setChartData] = useState(initialEarningsData);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('bKash');
@@ -35,6 +36,7 @@ export default function WalletPage() {
   const fetchBalance = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
+    setIsEmailVerified(!!session.user.email_confirmed_at);
 
     const { data } = await supabase
       .from('profiles')

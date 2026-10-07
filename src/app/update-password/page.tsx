@@ -1,7 +1,7 @@
 'use client';
 import { toast } from 'react-hot-toast';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Key, Loader2, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -12,6 +12,17 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('You must be logged in or have a valid recovery link to update your password.');
+        router.push('/auth');
+      }
+    };
+    checkSession();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

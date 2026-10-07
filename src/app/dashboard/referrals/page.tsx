@@ -77,10 +77,9 @@ export default function ReferralsPage() {
   };
 
   const copyLink = () => {
-    const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/signup?ref=${referralCode}`;
+    const link = `https://ctask.codbotbd.com/register?ref=${referralCode}`;
     navigator.clipboard.writeText(link);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    toast.success('Referral link copied to clipboard!');
   };
   
   const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -331,12 +330,7 @@ export default function ReferralsPage() {
         </div>
       )}
 
-      {showToast && (
-        <div className="fixed bottom-4 right-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2 z-50 animate-in slide-in-from-bottom-5">
-          <CheckCircle className="w-5 h-5 text-brand-primary" />
-          <span className="font-bold">Link copied!</span>
-        </div>
-      )}
+
     </div>
   );
 }

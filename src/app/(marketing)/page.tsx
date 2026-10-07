@@ -8,7 +8,7 @@ export default function Home() {
     <>
       {/* Hero Section */}
       <main className="pt-32 pb-16 px-6 flex-1">
-        <div className="max-w-7xl mx-auto text-center space-y-8 mt-12">
+        <div className="max-w-7xl mx-auto text-center space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 text-purple-700 text-sm font-bold border border-purple-200 mb-4 animate-fade-in">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-500 opacity-75"></span>

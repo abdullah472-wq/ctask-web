@@ -19,7 +19,8 @@ import {
   Menu,
   Settings,
   History,
-  MessageSquare
+  MessageSquare,
+  LifeBuoy
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -106,6 +107,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Withdrawals', href: '/admin/withdrawals', icon: Landmark, badgeCount: counts.withdrawals },
     { label: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard },
     { label: 'Manage Reviews', href: '/admin/manage-reviews', icon: MessageSquare },
+    { label: 'Support Tickets', href: '/admin/tickets', icon: LifeBuoy },
     { label: 'Activity Logs', href: '/admin/activity-logs', icon: ListTodo },
     { label: 'Settings', href: '/admin/settings', icon: Settings },
   ];
