@@ -20,7 +20,7 @@ export default function PendingTasksPage() {
       .from('tasks')
       .select(`
         *,
-        profiles!tasks_creator_id_fkey (full_name, email)
+        profiles!tasks_creator_id_fkey (full_name)
       `)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
@@ -120,7 +120,6 @@ export default function PendingTasksPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-medium text-slate-900 dark:text-white">{task.profiles?.full_name}</div>
-                    <div className="text-xs text-slate-500">{task.profiles?.email}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-bold text-slate-900 dark:text-white mb-1">{task.title}</div>
