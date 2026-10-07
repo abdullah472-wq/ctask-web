@@ -165,15 +165,15 @@ export function NotificationBell({ userId }: { userId: string }) {
                 {notifications.map((notif) => (
                   <div 
                     key={notif.id} 
-                    className={\`p-4 flex gap-4 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer \${!notif.is_read ? 'bg-blue-50/50 dark:bg-brand-primary/5' : ''}\`}
+                    className={`p-4 flex gap-4 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer ${!notif.is_read ? 'bg-blue-50/50 dark:bg-brand-primary/5' : ''}`}
                     onClick={() => handleMarkAsRead(notif.id)}
                   >
-                    <div className={\`w-10 h-10 shrink-0 rounded-full flex items-center justify-center \${getNotificationIconBg(notif.title)}\`}>
+                    <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${getNotificationIconBg(notif.title)}`}>
                       {getNotificationIcon(notif.title)}
                     </div>
                     <div className="flex-1">
                       <div className="flex justify-between items-start mb-1">
-                        <h4 className={\`text-sm font-semibold \${!notif.is_read ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}\`}>
+                        <h4 className={`text-sm font-semibold ${!notif.is_read ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
                           {notif.title}
                         </h4>
                         <span className="text-[10px] text-slate-500 whitespace-nowrap ml-2">
