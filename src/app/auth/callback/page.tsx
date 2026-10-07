@@ -45,7 +45,7 @@ function CallbackLogic() {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': \`Bearer \${sessionToUse.access_token}\`
+                'Authorization': `Bearer ${sessionToUse.access_token}`
               }
             });
             const { blocked } = await res.json();
@@ -75,7 +75,7 @@ function CallbackLogic() {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': \`Bearer \${session.access_token}\`
+                    'Authorization': `Bearer ${session.access_token}`
                   }
                 });
                 const { blocked } = await res.json();
