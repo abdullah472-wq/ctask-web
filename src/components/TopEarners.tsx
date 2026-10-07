@@ -13,11 +13,10 @@ export function TopEarners() {
   }, []);
 
   const fetchLeaders = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name, total_earned')
-      .order('total_earned', { ascending: false })
-      .limit(5);
+    const { data } = await supabase.rpc('get_monthly_leaderboard', {
+      p_gender: 'All',
+      p_country: 'All'
+    });
 
     if (data) {
       setLeaders(data);
