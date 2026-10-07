@@ -76,10 +76,9 @@ export default function ReferralsPage() {
     setLoading(false);
   };
 
-  const copyLink = () => {
-    const link = `https://ctask.codbotbd.com/register?ref=${referralCode}`;
-    navigator.clipboard.writeText(link);
-    toast.success('Referral link copied to clipboard!');
+  const copyCode = () => {
+    navigator.clipboard.writeText(referralCode);
+    toast.success('Referral code copied to clipboard!');
   };
   
   const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -137,11 +136,11 @@ export default function ReferralsPage() {
           </p>
           <div className="flex flex-wrap items-center gap-4">
             <button 
-              onClick={copyLink}
+              onClick={copyCode}
               className="px-8 py-4 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold hover:opacity-90 transition-opacity flex items-center gap-2 shadow-lg shadow-brand-accent/20"
             >
               <Copy className="w-5 h-5" />
-              Get Referral Link
+              Copy Invite Code
             </button>
             <button 
               onClick={() => setShowTerms(true)}
@@ -155,7 +154,12 @@ export default function ReferralsPage() {
 
         <div className="hidden md:flex flex-col items-center justify-center p-6 bg-white/50 dark:bg-black/20 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-slate-800">
           <p className="text-sm font-bold text-slate-500 uppercase mb-2">Your Invite Code</p>
-          <div className="text-3xl font-black text-brand-accent uppercase tracking-wider">{referralCode || 'N/A'}</div>
+          <div className="flex items-center gap-3">
+            <div className="text-3xl font-black text-brand-accent uppercase tracking-wider">{referralCode || 'N/A'}</div>
+            <button onClick={copyCode} className="p-2 bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-colors" title="Copy Code">
+              <Copy className="w-5 h-5 text-brand-accent" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -248,10 +252,10 @@ export default function ReferralsPage() {
             <p className="text-slate-500 dark:text-slate-400">Share your invite link to start building your downline and earning bonuses.</p>
             {referralCode && (
               <button 
-                onClick={copyLink}
+                onClick={copyCode}
                 className="mt-6 px-6 py-3 rounded-xl bg-brand-accent/10 text-brand-accent font-bold hover:bg-brand-accent/20 transition-colors"
               >
-                Copy Invite Link
+                Copy Invite Code
               </button>
             )}
           </div>
