@@ -17,7 +17,7 @@ function CallbackLogic() {
       const next = searchParams.get('next') || '/dashboard';
       const type = searchParams.get('type');
 
-      let sessionToUse = null;
+      let sessionToUse: any = null;
 
       try {
         if (code) {

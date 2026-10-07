@@ -39,6 +39,7 @@ interface Profile {
   role: string;
   plan_type?: string;
   verification_status?: string;
+  kyc_status?: string;
   is_blocked?: boolean;
   avatar_id?: string;
 }
