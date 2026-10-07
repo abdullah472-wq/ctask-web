@@ -13,10 +13,7 @@ export function TopEarners() {
   }, []);
 
   const fetchLeaders = async () => {
-    const { data } = await supabase.rpc('get_monthly_leaderboard', {
-      p_gender: 'All',
-      p_country: 'All'
-    });
+    const { data } = await supabase.rpc('get_global_leaderboard');
 
     if (data) {
       setLeaders(data);
