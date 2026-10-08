@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import { X, Upload, Loader2, Link as LinkIcon, FileText } from 'lucide-react';
 import { supabase } from '@/utils/supabase';
+import { useTranslations } from 'next-intl';
 
 interface Task {
   is_premium?: boolean;
@@ -22,6 +23,7 @@ interface SubmitProofModalProps {
 }
 
 export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, onSuccess }: SubmitProofModalProps) {
+  const t = useTranslations('SubmitProofModal');
   const [proofText, setProofText] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -101,11 +103,11 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
 
       if (submitError) throw submitError;
 
-      toast.success('Proof submitted successfully! Awaiting review.');
+      toast.success(t('successMsg'));
       onSuccess();
     } catch (error: any) {
       console.error('Submission error:', error);
-      toast.error(error.message || 'Error submitting proof');
+      toast.error(error.message || t('errorMsg'));
     } finally {
       setSubmitting(false);
     }
@@ -115,7 +117,7 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-dark-card w-full max-w-lg rounded-3xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-white/5">
-          <h3 className="font-bold text-lg">Submit Task Proof</h3>
+          <h3 className="font-bold text-lg">{t('title')}</h3>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
@@ -134,7 +136,7 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
           
           <div className="mb-6">
             <h5 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2">
-              <FileText className="w-4 h-4" /> Instructions
+              <FileText className="w-4 h-4" /> {t('instructions')}
             </h5>
             <p className="text-sm text-slate-400 p-3 rounded-lg bg-black/30 border border-slate-800">
               {task.proof_instruction}
@@ -150,9 +152,9 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
               <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <X className="w-8 h-8" />
               </div>
-              <h4 className="text-xl font-bold text-red-500 mb-2">Monthly Limit Reached</h4>
+              <h4 className="text-xl font-bold text-red-500 mb-2">{t('monthlyLimitReached')}</h4>
               <p className="text-slate-300 mb-4 text-sm">
-                You have reached your 1000 ৳ earning limit for this month on the Basic plan. Upgrade to Premium to unlock unlimited earnings!
+                {t('limitDesc')}
               </p>
               <button
                 onClick={() => {
@@ -161,24 +163,24 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
                 }}
                 className="px-6 py-3 rounded-xl bg-gradient-to-r from-yellow-400 to-yellow-600 text-dark-bg font-bold w-full"
               >
-                Upgrade to Premium
+                {t('upgradeBtn')}
               </button>
             </div>
           ) : (
             <form id="proofForm" onSubmit={handleSubmitProof} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Proof Text</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">{t('proofText')}</label>
                 <textarea
                   required
                   value={proofText}
                   onChange={e => setProofText(e.target.value)}
                   className="w-full bg-white/5 border border-slate-800 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-accent transition-colors h-24 resize-none"
-                  placeholder="Enter required text proof (username, email used, etc.)"
+                  placeholder={t('proofTextPlaceholder')}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Screenshot Proof (Optional)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">{t('screenshotOptional')}</label>
                 <div className="relative border-2 border-dashed border-slate-800 rounded-xl p-6 text-center hover:border-brand-accent/50 transition-colors bg-white/5">
                   <input
                     type="file"
@@ -188,7 +190,7 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
                   />
                   <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
                   <p className="text-sm text-slate-300">
-                    {proofFile ? proofFile.name : "Click or drag image to upload"}
+                    {proofFile ? proofFile.name : t('uploadPrompt')}
                   </p>
                 </div>
               </div>
@@ -202,7 +204,7 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
             onClick={onClose}
             className="px-5 py-2.5 rounded-xl font-medium text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
           >
-            Cancel
+            {t('cancelBtn')}
           </button>
           <button
             type="submit"
@@ -211,7 +213,7 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
             className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold flex items-center gap-2 hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            Submit Proof
+            {t('submitBtn')}
           </button>
         </div>
       </div>

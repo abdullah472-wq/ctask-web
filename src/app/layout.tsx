@@ -13,8 +13,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import { Noto_Serif_Bengali } from "next/font/google";
+const notoSerifBengali = Noto_Serif_Bengali({
+  weight: "400",
+  subsets: ["bengali"],
+  variable: "--font-tiro-bangla", // using the same variable name for compatibility
+});
+
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 
+import { cookies } from 'next/headers';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
@@ -25,14 +33,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const locale = cookieStore.get('NEXT_LOCALE')?.value || 'en';
+  const isBangla = locale === 'bn';
+
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
-      <body className="antialiased min-h-screen bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-slate-100 transition-colors duration-300" suppressHydrationWarning>
+    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} ${notoSerifBengali.variable}`} suppressHydrationWarning>
+      <body className={`antialiased min-h-screen bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-slate-100 transition-colors duration-300 ${isBangla ? 'font-bangla-active' : ''}`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

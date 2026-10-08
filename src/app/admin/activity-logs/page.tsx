@@ -8,14 +8,16 @@ import { format } from 'date-fns';
 
 interface ActivityLog {
   id: string;
-  admin_id: string;
-  action: string;
-  details: string;
+  user_id: string;
+  type: string;
+  amount: number;
+  status: string;
+  description: string;
   created_at: string;
   profiles: {
     full_name: string;
   };
-}
+};
 
 export default function ActivityLogsPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -26,24 +28,65 @@ export default function ActivityLogsPage() {
   }, []);
 
   const fetchLogs = async () => {
-    const { data, error } = await supabase
-      .from('admin_activity_logs')
-      .select(`
-        id,
-        action,
-        details,
-        created_at,
-        admin_id,
-        profiles (full_name)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(100);
+    const [
+      { data: txData },
+      { data: subData }
+    ] = await Promise.all([
+      supabase
+        .from('transactions')
+        .select(`
+          id,
+          type,
+          amount,
+          status,
+          description,
+          created_at,
+          profiles (full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(100),
+      supabase
+        .from('task_submissions')
+        .select(`
+          id,
+          status,
+          submitted_at,
+          tasks:task_id (title, reward_amount),
+          profiles (full_name)
+        `)
+        .order('submitted_at', { ascending: false })
+        .limit(100)
+    ]);
 
-    if (error) {
-      toast.error('Error fetching logs: ' + error.message);
-    } else {
-      setLogs(data as any);
+    let combinedLogs: any[] = [];
+
+    if (txData) {
+      combinedLogs = [...combinedLogs, ...txData.map((tx: any) => ({
+        id: tx.id,
+        created_at: tx.created_at,
+        description: tx.description || (tx.type === 'withdrawal' ? 'Withdrawal Request' : tx.type === 'deposit' ? 'Wallet Deposit' : tx.type === 'premium_subscription' ? 'Premium Upgrade' : 'Transaction'),
+        type: tx.type,
+        amount: Number(tx.amount || 0),
+        status: tx.status,
+        user_name: tx.profiles?.full_name || 'Unknown'
+      }))];
     }
+
+    if (subData) {
+      combinedLogs = [...combinedLogs, ...subData.map((sub: any) => ({
+        id: sub.id,
+        created_at: sub.submitted_at,
+        description: `Task: ${sub.tasks?.title || 'Unknown'}`,
+        type: 'task',
+        amount: Number(sub.tasks?.reward_amount || 0),
+        status: sub.status,
+        user_name: sub.profiles?.full_name || 'Unknown'
+      }))];
+    }
+
+    combinedLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    setLogs(combinedLogs.slice(0, 100));
     setLoading(false);
   };
 
@@ -73,9 +116,10 @@ export default function ActivityLogsPage() {
             <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="px-6 py-4 font-semibold">Date & Time</th>
-                <th className="px-6 py-4 font-semibold">Admin</th>
-                <th className="px-6 py-4 font-semibold">Action</th>
-                <th className="px-6 py-4 font-semibold">Details</th>
+                <th className="px-6 py-4 font-semibold">User</th>
+                <th className="px-6 py-4 font-semibold">Activity Type</th>
+                <th className="px-6 py-4 font-semibold">Amount</th>
+                <th className="px-6 py-4 font-semibold">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -85,21 +129,34 @@ export default function ActivityLogsPage() {
                     {format(new Date(log.created_at), 'MMM dd, yyyy HH:mm')}
                   </td>
                   <td className="px-6 py-4">
-                    <span className="font-medium text-slate-900 dark:text-white">{log.profiles?.full_name || 'Unknown Admin'}</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{log.user_name}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50">
-                      {log.action}
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{log.description}</span>
+                      <span className="text-xs text-slate-500 capitalize">{log.type.replace('_', ' ')}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 font-bold">
+                    <span className={log.type === 'withdrawal' ? 'text-red-500' : 'text-green-500'}>
+                      {log.type === 'withdrawal' ? '-' : '+'}৳ {Number(log.amount || 0).toFixed(2)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                    {log.details}
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-1 rounded-md text-xs font-semibold capitalize ${log.status === 'paid' || log.status === 'completed' || log.status === 'approved'
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : log.status === 'rejected' || log.status === 'failed'
+                          ? 'bg-red-100 text-red-700 border border-red-200'
+                          : 'bg-amber-100 text-amber-700 border border-amber-200'
+                      }`}>
+                      {log.status}
+                    </span>
                   </td>
                 </tr>
               ))}
               {logs.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
                     No activity logs found.
                   </td>
                 </tr>

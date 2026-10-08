@@ -9,6 +9,9 @@ export default function UsersManagementPage() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [searchId, setSearchId] = useState('');
+  const [filterCountry, setFilterCountry] = useState('');
+  const [filterGender, setFilterGender] = useState('');
   
   // Notification Modal State
   const [noticeModalOpen, setNoticeModalOpen] = useState(false);
@@ -93,11 +96,52 @@ export default function UsersManagementPage() {
     return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
   };
 
+  const filteredUsers = users.filter(user => {
+    const matchId = !searchId || user.id.toLowerCase().includes(searchId.toLowerCase()) || (user.full_name || '').toLowerCase().includes(searchId.toLowerCase());
+    const matchCountry = !filterCountry || (user.country || '').toLowerCase() === filterCountry.toLowerCase();
+    const matchGender = !filterGender || (user.gender || '').toLowerCase() === filterGender.toLowerCase();
+    return matchId && matchCountry && matchGender;
+  });
+
+  const allCountries = [...new Set(users.map(u => u.country).filter(Boolean))].sort();
+
   return (
     <>
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-2">User Management</h1>
         <p className="text-slate-500 dark:text-slate-400">Manage all registered users on Ctask.</p>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="flex flex-wrap gap-3 mb-5">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchId}
+            onChange={e => setSearchId(e.target.value)}
+            placeholder="Search by name or User ID..."
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent"
+          />
+        </div>
+        <select
+          value={filterCountry}
+          onChange={e => setFilterCountry(e.target.value)}
+          className="px-3 py-2.5 bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent"
+        >
+          <option value="">All Countries</option>
+          {allCountries.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select
+          value={filterGender}
+          onChange={e => setFilterGender(e.target.value)}
+          className="px-3 py-2.5 bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent"
+        >
+          <option value="">All Genders</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+        <span className="flex items-center text-sm text-slate-500 px-2">{filteredUsers.length} of {users.length} users</span>
       </div>
 
       <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
@@ -116,7 +160,7 @@ export default function UsersManagementPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-slate-700 dark:text-slate-200">
                   <td className="px-6 py-4 font-bold">
                     {user.full_name}

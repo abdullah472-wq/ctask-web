@@ -11,11 +11,14 @@ export default function CreateTaskPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
+    title_bn: '',
     description: '',
+    description_bn: '',
     task_url: '',
     reward_amount: '',
     total_slots: '',
     proof_instruction: '',
+    proof_instruction_bn: '',
     category_id: '',
     subcategory_id: '',
     is_premium: false,
@@ -57,12 +60,15 @@ export default function CreateTaskPage() {
       .from('tasks')
       .insert({
         title: formData.title,
+        title_bn: formData.title_bn,
         description: formData.description,
+        description_bn: formData.description_bn,
         task_url: formData.task_url || null,
         reward_amount: Number(formData.reward_amount),
         total_slots: Number(formData.total_slots),
         completed_slots: 0,
         proof_instruction: formData.proof_instruction,
+        proof_instruction_bn: formData.proof_instruction_bn,
         category_id: formData.category_id,
         subcategory_id: formData.subcategory_id,
         is_premium: formData.is_premium,
@@ -146,8 +152,9 @@ export default function CreateTaskPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Task Title</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Task Title (English)</label>
               <input 
                 name="title"
                 required
@@ -156,10 +163,23 @@ export default function CreateTaskPage() {
                 className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
                 placeholder="e.g. Subscribe to YouTube Channel"
               />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Task Title (Bengali)</label>
+                <input 
+                  name="title_bn"
+                  required
+                  value={formData.title_bn}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
+                  placeholder="উদাঃ ইউটিউব চ্যানেল সাবস্ক্রাইব করুন"
+                />
+              </div>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Task Description</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Task Instructions (English)</label>
               <textarea 
                 name="description"
                 required
@@ -168,6 +188,18 @@ export default function CreateTaskPage() {
                 className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors h-24 resize-none"
                 placeholder="Explain what the worker needs to do..."
               />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Task Instructions (Bengali) / কাজের নির্দেশনা</label>
+                <textarea 
+                  name="description_bn"
+                  required
+                  value={formData.description_bn}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors h-24 resize-none"
+                  placeholder="কর্মীকে কী করতে হবে তা ব্যাখ্যা করুন..."
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -225,8 +257,9 @@ export default function CreateTaskPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Proof Instructions</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Proof Requirements (English)</label>
               <textarea 
                 name="proof_instruction"
                 required
@@ -235,6 +268,18 @@ export default function CreateTaskPage() {
                 className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors h-24 resize-none"
                 placeholder="What exactly should the worker submit as proof?"
               />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Proof Requirements (Bengali) / প্রমাণের প্রয়োজনীয়তা</label>
+                <textarea 
+                  name="proof_instruction_bn"
+                  required
+                  value={formData.proof_instruction_bn}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors h-24 resize-none"
+                  placeholder="প্রমাণ হিসেবে কর্মীকে কী জমা দিতে হবে?"
+                />
+              </div>
             </div>
           </div>
           

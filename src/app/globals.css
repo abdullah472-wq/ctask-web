@@ -8,6 +8,7 @@
   --color-dark-bg: #0c0721;
   --color-dark-card: #130932;
   --animate-spin-y: spinY 2s linear infinite;
+  --font-bangla: var(--font-tiro-bangla), serif;
 }
 
 @keyframes spinY {
@@ -28,6 +29,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.font-bangla-active,
+.font-bangla-active * {
+  font-family: var(--font-bangla) !important;
 }
 
 /* Custom scrollbar for dark theme */

@@ -21,6 +21,7 @@ export default function AdminOverviewPage() {
     activeTasks: 0,
     pendingKyc: 0,
     pendingWithdrawals: 0,
+    pendingWithdrawalsAmount: 0,
     pendingTickets: 0,
   });
   
@@ -41,6 +42,7 @@ export default function AdminOverviewPage() {
       tasksActiveRes,
       kycRes,
       withdrawalsPendingRes,
+      withdrawalsPendingAmountRes,
       ticketsRes,
       recentUsersRes
     ] = await Promise.all([
@@ -48,11 +50,12 @@ export default function AdminOverviewPage() {
       supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('profiles').select('total_earned'),
       supabase.from('deposits').select('amount').eq('status', 'approved'),
-      supabase.from('withdrawals').select('amount').eq('status', 'approved'),
+      supabase.from('withdrawals').select('amount').eq('status', 'paid'),
       supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('kyc_status', 'pending'),
       supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('withdrawals').select('amount').eq('status', 'pending'),
       supabase.from('support_tickets').select('*', { count: 'exact', head: true }).eq('status', 'open'),
       supabase.from('profiles').select('id, full_name, created_at').order('created_at', { ascending: false }).limit(5)
     ]);
@@ -71,6 +74,11 @@ export default function AdminOverviewPage() {
     if (withdrawalsTotalRes.data) {
       totalWithdrawals = withdrawalsTotalRes.data.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
     }
+    
+    let pendingWithdrawalAmount = 0;
+    if (withdrawalsPendingAmountRes.data) {
+      pendingWithdrawalAmount = withdrawalsPendingAmountRes.data.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+    }
 
     setStats({
       totalUsers: usersRes.count || 0,
@@ -82,6 +90,7 @@ export default function AdminOverviewPage() {
       activeTasks: tasksActiveRes.count || 0,
       pendingKyc: kycRes.count || 0,
       pendingWithdrawals: withdrawalsPendingRes.count || 0,
+      pendingWithdrawalsAmount: pendingWithdrawalAmount,
       pendingTickets: ticketsRes.count || 0,
     });
     
@@ -160,8 +169,6 @@ export default function AdminOverviewPage() {
     }
     return null;
   };
-
-  const pendingWithdrawalAmountMock = 120; // In a real scenario, sum up pending amounts
 
   return (
     <>
@@ -331,7 +338,7 @@ export default function AdminOverviewPage() {
             <h3 className="text-lg font-bold mb-6 text-slate-800 dark:text-slate-200">Financial Overview</h3>
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[{ name: 'Payouts vs Pending', payouts: stats.totalWithdrawals, pending: pendingWithdrawalAmountMock }]} barSize={80}>
+                <BarChart data={[{ name: 'Payouts vs Pending', payouts: stats.totalWithdrawals, pending: stats.pendingWithdrawalsAmount }]} barSize={80}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" strokeOpacity={0.3} vertical={false} />
                   <XAxis 
                     dataKey="name" 

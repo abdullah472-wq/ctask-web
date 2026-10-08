@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
 import { LucideIcon } from 'lucide-react';
+import DefaultLink from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface SidebarProps {
   title: string;
@@ -15,10 +15,13 @@ interface SidebarProps {
   }[];
   isOpen?: boolean;
   setIsOpen?: (isOpen: boolean) => void;
+  LinkComponent?: any;
+  currentPath?: string;
 }
 
-export function Sidebar({ title, links, isOpen, setIsOpen }: SidebarProps) {
-  const pathname = usePathname();
+export function Sidebar({ title, links, isOpen, setIsOpen, LinkComponent = DefaultLink, currentPath }: SidebarProps) {
+  const fallbackPathname = usePathname();
+  const pathname = currentPath ?? fallbackPathname;
 
   return (
     <>
@@ -57,7 +60,7 @@ export function Sidebar({ title, links, isOpen, setIsOpen }: SidebarProps) {
         {links.map((link) => {
           const isActive = pathname === link.href;
           return (
-            <Link
+            <LinkComponent
               key={link.href}
               href={link.href}
               className={`flex items-center justify-between px-4 py-2 rounded-xl transition-all ${
@@ -75,7 +78,7 @@ export function Sidebar({ title, links, isOpen, setIsOpen }: SidebarProps) {
                   {link.badgeCount > 99 ? '99+' : link.badgeCount}
                 </span>
               )}
-            </Link>
+            </LinkComponent>
           );
         })}
       </nav>

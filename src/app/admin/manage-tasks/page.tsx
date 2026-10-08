@@ -20,6 +20,10 @@ export default function ManageTasksPage() {
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterSubcategory, setFilterSubcategory] = useState('');
+  const [categories, setCategories] = useState<any[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
 
   useEffect(() => {
     fetchTasks();
@@ -28,7 +32,7 @@ export default function ManageTasksPage() {
   const fetchTasks = async () => {
     const { data, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select('*, category:task_categories(name), subcategory:task_subcategories(name)')
       .order('created_at', { ascending: false });
 
     if (!error && data) {

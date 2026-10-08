@@ -3,13 +3,14 @@ import { toast } from 'react-hot-toast';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
-import { Loader2, Check, X, CreditCard } from 'lucide-react';
+import { Loader2, Check, X, CreditCard, Search } from 'lucide-react';
 import { logAdminAction } from '@/utils/activityLogger';
 
 export default function AdminDepositsPage() {
   const [loading, setLoading] = useState(true);
   const [deposits, setDeposits] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [searchTxId, setSearchTxId] = useState('');
 
   useEffect(() => {
     fetchDeposits();
@@ -80,6 +81,17 @@ export default function AdminDepositsPage() {
         <p className="text-slate-500 dark:text-slate-400">Review and approve user deposit requests.</p>
       </div>
 
+      <div className="mb-5 relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input
+          type="text"
+          value={searchTxId}
+          onChange={e => setSearchTxId(e.target.value)}
+          placeholder="Search by Transaction ID..."
+          className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-accent transition-colors"
+        />
+      </div>
+
       <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -94,15 +106,18 @@ export default function AdminDepositsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {deposits.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                    <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50 text-brand-accent" />
-                    No pending deposit requests.
-                  </td>
-                </tr>
-              ) : (
-                deposits.map((dep) => (
+              {(() => {
+                const filteredDeposits = deposits.filter(dep => !searchTxId || (dep.transaction_id || '').toLowerCase().includes(searchTxId.toLowerCase()));
+                if (filteredDeposits.length === 0) return (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                      <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50 text-brand-accent" />
+                      No pending deposit requests.
+                    </td>
+                  </tr>
+                );
+                
+                return filteredDeposits.map((dep) => (
                   <tr key={dep.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-slate-700 dark:text-slate-200">
                     <td className="px-6 py-4 font-bold">{dep.profiles?.full_name}</td>
                     <td className="px-6 py-4">{dep.payment_method}</td>
@@ -129,8 +144,8 @@ export default function AdminDepositsPage() {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
+                ));
+              })()}
             </tbody>
           </table>
         </div>

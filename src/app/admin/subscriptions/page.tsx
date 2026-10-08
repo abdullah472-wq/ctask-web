@@ -3,13 +3,15 @@ import { toast } from 'react-hot-toast';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
-import { Loader2, Check, X, CreditCard } from 'lucide-react';
+import { Loader2, Check, X, CreditCard, Search } from 'lucide-react';
 import { logAdminAction } from '@/utils/activityLogger';
 
 export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [searchTxId, setSearchTxId] = useState('');
+  const [filterPlan, setFilterPlan] = useState('');
 
   useEffect(() => {
     fetchRequests();
@@ -101,15 +103,23 @@ export default function SubscriptionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {requests.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                    <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50 text-brand-accent" />
-                    No pending subscription requests.
-                  </td>
-                </tr>
-              ) : (
-                requests.map((req) => (
+              {(() => {
+                const filteredRequests = requests.filter(req => {
+                  const matchTx = !searchTxId || (req.transaction_id || '').toLowerCase().includes(searchTxId.toLowerCase());
+                  const matchPlan = !filterPlan || (req.profiles?.plan_type || 'free').toLowerCase() === filterPlan.toLowerCase();
+                  return matchTx && matchPlan;
+                });
+                if (filteredRequests.length === 0) {
+                  return (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                        <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50 text-brand-accent" />
+                        No pending subscription requests match your search.
+                      </td>
+                    </tr>
+                  );
+                }
+                return filteredRequests.map((req) => (
                   <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-slate-700 dark:text-slate-200">
                     <td className="px-6 py-4 font-bold">{req.profiles?.full_name}</td>
                     <td className="px-6 py-4 capitalize">{req.profiles?.plan_type}</td>
@@ -136,8 +146,8 @@ export default function SubscriptionsPage() {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
+                ));
+              })()}
             </tbody>
           </table>
         </div>

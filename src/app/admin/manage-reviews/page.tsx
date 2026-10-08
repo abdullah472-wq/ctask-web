@@ -2,13 +2,15 @@
 import { toast } from 'react-hot-toast';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
-import { Loader2, Plus, Trash2, CheckCircle, XCircle, Star, Clock } from 'lucide-react';
+import { Loader2, Plus, Trash2, CheckCircle, XCircle, Star, Clock, Search } from 'lucide-react';
 import { logAdminAction } from '@/utils/activityLogger';
 
 export default function ManageReviewsPage() {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [searchUserId, setSearchUserId] = useState('');
+  const [filterRating, setFilterRating] = useState('');
   
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -140,7 +142,11 @@ export default function ManageReviewsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {reviews.map((review) => (
+              {reviews.filter(review => {
+                const matchUser = !searchUserId || (review.user_id || '').toLowerCase().includes(searchUserId.toLowerCase()) || (review.user_name || '').toLowerCase().includes(searchUserId.toLowerCase());
+                const matchRating = !filterRating || review.rating?.toString() === filterRating;
+                return matchUser && matchRating;
+              }).map((review) => (
                 <tr key={review.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-slate-700 dark:text-slate-200">
                   <td className="px-6 py-4">
                     <div className="font-bold">{review.user_name}</div>
