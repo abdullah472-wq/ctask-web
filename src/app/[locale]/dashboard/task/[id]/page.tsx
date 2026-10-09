@@ -33,9 +33,6 @@ export default function TaskDetailsPage() {
   const tCard = useTranslations('TaskCard');
   const locale = useLocale();
 
-  const displayTitle = task ? (locale === 'bn' && task.title_bn ? task.title_bn : task.title) : '';
-  const displayDesc = task ? (locale === 'bn' && task.description_bn ? task.description_bn : task.description) : '';
-  const displayProof = task ? (locale === 'bn' && task.proof_instruction_bn ? task.proof_instruction_bn : task.proof_instruction) : '';
 
   const [loading, setLoading] = useState(true);
   const [task, setTask] = useState<Task | null>(null);
@@ -48,6 +45,10 @@ export default function TaskDetailsPage() {
   const [limitReached, setLimitReached] = useState(false);
   const [checkingLimit, setCheckingLimit] = useState(true);
   const [existingSubmission, setExistingSubmission] = useState<{status: string} | null>(null);
+
+  const displayTitle = task ? (locale === 'bn' && task.title_bn ? task.title_bn : task.title) : '';
+  const displayDesc = task ? (locale === 'bn' && task.description_bn ? task.description_bn : task.description) : '';
+  const displayProof = task ? (locale === 'bn' && task.proof_instruction_bn ? task.proof_instruction_bn : task.proof_instruction) : '';
 
   useEffect(() => {
     if (id) {

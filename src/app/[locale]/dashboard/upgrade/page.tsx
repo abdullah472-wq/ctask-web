@@ -154,7 +154,7 @@ export default function UpgradePage() {
           ) : (
             <div className="bg-white/80 dark:bg-black/30 p-5 rounded-xl border border-brand-accent/30 mt-4">
               <div className="text-sm text-slate-700 dark:text-slate-300 mb-4 font-medium leading-relaxed">
-                <span dangerouslySetInnerHTML={{ __html: t('instructions') }} />
+                <span dangerouslySetInnerHTML={{ __html: t.raw('instructions') as string }} />
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center flex-wrap gap-2">
                     <span className="w-32 font-medium text-slate-800 dark:text-slate-200">Nagad Personal:</span>

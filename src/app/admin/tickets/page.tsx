@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import { toast } from 'react-hot-toast';
 import { CheckCircle, Clock, MessageSquare, Loader2 } from 'lucide-react';
+import { resolveTicket } from '@/app/actions/tickets';
 
 export default function AdminTicketsPage() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -30,20 +31,9 @@ export default function AdminTicketsPage() {
 
   const handleResolve = async (id: string) => {
     try {
-      const { data, error } = await supabase
-        .from('support_tickets')
-        .update({ status: 'resolved' })
-        .eq('id', id)
-        .select();
-        
-      if (error) throw error;
-      
-      if (!data || data.length === 0) {
-        throw new Error('Update failed. You may not have permission to modify this ticket.');
-      }
-      
+      const result = await resolveTicket(id);
+      if (!result.success) throw new Error(result.error || 'Failed to resolve ticket');
       toast.success('Ticket marked as resolved!');
-      // Re-fetch to guarantee sync with DB
       fetchTickets();
     } catch (err: any) {
       toast.error(err.message || 'Failed to resolve ticket');
