@@ -30,7 +30,7 @@ export default function WorkerActivityLogPage() {
       supabase
         .from('task_submissions')
         .select('id, status, submitted_at, admin_feedback, tasks:task_id (title, reward_amount)')
-        .eq('worker_id', session.user.id)
+        .eq('user_id', session.user.id)
     ]);
 
     let combinedLogs: any[] = [];

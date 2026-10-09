@@ -4,6 +4,7 @@
 -- ============================================================
 
 -- Allow authenticated users to insert their own subscription requests
+DROP POLICY IF EXISTS "Allow authenticated users to insert subscription requests" ON public.subscription_requests;
 CREATE POLICY "Allow authenticated users to insert subscription requests" 
 ON public.subscription_requests 
 FOR INSERT 
@@ -11,6 +12,7 @@ TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
 -- Allow users to view their own subscription requests
+DROP POLICY IF EXISTS "Allow users to view own subscription requests" ON public.subscription_requests;
 CREATE POLICY "Allow users to view own subscription requests"
 ON public.subscription_requests
 FOR SELECT
@@ -20,7 +22,6 @@ USING (auth.uid() = user_id);
 
 -- ============================================================
 -- FIX 2: Add reference_id column to transactions (if missing)
--- Skip this block if the column already exists
 -- ============================================================
 
 ALTER TABLE public.transactions 
@@ -48,11 +49,11 @@ WHERE t.reference_id IS NULL
 
 -- ============================================================
 -- FIX 4: RLS Policy for support_tickets (Admin UPDATE)
--- NOTE: The backend now uses the service role key to bypass RLS,
--- so this SQL is optional — but run it as a safety net.
+-- NOTE: The backend uses service role key to bypass RLS,
+-- so this is an optional safety net.
 -- ============================================================
 
--- Allow admins to update any support ticket
+DROP POLICY IF EXISTS "Allow admin to update support tickets" ON public.support_tickets;
 CREATE POLICY "Allow admin to update support tickets"
 ON public.support_tickets
 FOR UPDATE

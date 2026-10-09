@@ -70,7 +70,7 @@ export default function WorkerDashboardPage() {
     const { data: submissions } = await supabase
       .from('task_submissions')
       .select('status')
-      .eq('worker_id', uid);
+      .eq('user_id', uid);
       
     // Fetch Recent Activity (Transactions)
     const { data: recentActivity } = await supabase
@@ -139,7 +139,7 @@ export default function WorkerDashboardPage() {
     const { data: chartSubmissions } = await supabase
       .from('task_submissions')
       .select('submitted_at, tasks:task_id(reward_amount)')
-      .eq('worker_id', uid)
+      .eq('user_id', uid)
       .eq('status', 'approved')
       .gte('submitted_at', dateStr);
 
