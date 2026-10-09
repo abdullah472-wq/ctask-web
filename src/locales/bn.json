@@ -51,7 +51,11 @@
     "performance": "পারফরম্যান্স",
     "approvalRate": "অনুমোদনের হার",
     "recentActivity": "সাম্প্রতিক কার্যকলাপ",
-    "reason": "কারণ:"
+    "reason": "কারণ:",
+    "earnings": "উপার্জন",
+    "withdrawals": "উত্তোলন",
+    "viewAllHistory": "সম্পূর্ণ ইতিহাস দেখুন",
+    "noRecentActivity": "কোনো সাম্প্রতিক কার্যকলাপ পাওয়া যায়নি।"
   },
   "TasksPage": {
     "title": "উপলব্ধ কাজসমূহ",

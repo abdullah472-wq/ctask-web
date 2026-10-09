@@ -51,7 +51,11 @@
     "performance": "Performance",
     "approvalRate": "Approval Rate",
     "recentActivity": "Recent Activity",
-    "reason": "Reason:"
+    "reason": "Reason:",
+    "earnings": "Earnings",
+    "withdrawals": "Withdrawals",
+    "viewAllHistory": "View All History",
+    "noRecentActivity": "No recent activity found."
   },
   "TasksPage": {
     "title": "Available Tasks",
