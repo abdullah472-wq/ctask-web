@@ -27,7 +27,12 @@
     "activityLog": "Activity Log",
     "viewAllHistory": "View All History",
     "earnings": "Earnings",
-    "withdrawals": "Withdrawals"
+    "withdrawals": "Withdrawals",
+    "navOverview": "Overview",
+    "navTasks": "Task Center",
+    "navFinance": "Finance & Growth",
+    "navAccount": "Account & Support",
+    "manageMyTasks": "Manage My Tasks"
   },
   "WorkerDashboard": {
     "worker": "Worker",
@@ -397,7 +402,22 @@
     "statusPending": "pending",
     "statusVerified": "verified",
     "statusUnverified": "unverified",
-    "statusRejected": "rejected"
+    "statusRejected": "rejected",
+    "resubmitDocs": "Resubmit Documents",
+    "activeSessions": "Active Sessions & Devices",
+    "currentDevice": "Current Device",
+    "signOutOthers": "Sign Out from All Other Devices",
+    "notificationPreferences": "Notification Preferences",
+    "notifTaskUpdates": "Task Proof Updates",
+    "notifTaskUpdatesDesc": "Get notified when advertisers approve or reject your task proofs",
+    "notifWithdrawals": "Withdrawals & Payouts",
+    "notifWithdrawalsDesc": "Instant alerts when your payout requests are approved or paid",
+    "notifStreak": "Daily Streak Reminders",
+    "notifStreakDesc": "Reminders to claim daily bonus and protect your active streak",
+    "passwordStrength": "Password Strength",
+    "weak": "Weak",
+    "medium": "Medium",
+    "strong": "Strong"
   },
   "ActivityLogPage": {
     "title": "Activity Log",

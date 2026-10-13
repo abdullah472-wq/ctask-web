@@ -8,6 +8,8 @@ import { SubmitProofModal } from '@/components/SubmitProofModal';
 import { PremiumLockModal } from '@/components/PremiumLockModal';
 import { useTranslations } from 'next-intl';
 
+import { cleanupExpiredSlots } from '@/app/actions/taskSlot';
+
 interface Task {
   id: string;
   title: string;
@@ -50,7 +52,7 @@ export default function AvailableTasksPage() {
       setUserId(session.user.id);
       await fetchProfile(session.user.id);
       await fetchCategories();
-      await fetchTasks();
+      await fetchTasks(session.user.id);
     }
     setLoading(false);
   };
@@ -70,17 +72,37 @@ export default function AvailableTasksPage() {
     if (data) setUserProfile(data);
   };
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (currentUserId?: string) => {
+    const uid = currentUserId || userId;
+
+    // Asynchronously cleanup expired slots first
+    try {
+      await cleanupExpiredSlots();
+    } catch (e) {
+      // ignore
+    }
+
     const { data: tasksData, error } = await supabase
       .from('tasks')
-      .select('*, category:task_categories(name), subcategory:task_subcategories(name)')
+      .select('*, category:task_categories(name), subcategory:task_subcategories(name), task_submissions(id, user_id, status, expires_at)')
       .eq('is_active', true)
       .eq('status', 'approved');
       
     if (error) {
       console.error('Error fetching tasks:', error);
-    } else {
-      const availableTasks = tasksData.filter(t => t.completed_slots < t.total_slots);
+    } else if (tasksData) {
+      const now = new Date();
+      const availableTasks = tasksData.filter((t: any) => {
+        const inProgressCount = t.task_submissions?.filter((s: any) => 
+          s.status === 'in_progress' && (!s.expires_at || new Date(s.expires_at) > now)
+        ).length || 0;
+
+        const userHasSlot = uid && t.task_submissions?.some((s: any) => 
+          s.user_id === uid && s.status === 'in_progress' && (!s.expires_at || new Date(s.expires_at) > now)
+        );
+
+        return (t.completed_slots + inProgressCount < t.total_slots) || userHasSlot;
+      });
       setTasks(availableTasks);
     }
   };

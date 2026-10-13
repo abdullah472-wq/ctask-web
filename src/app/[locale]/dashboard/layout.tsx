@@ -25,11 +25,15 @@ import {
   Moon,
   Sun,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  ListTodo,
+  Briefcase,
+  ClipboardCheck,
+  CreditCard,
+  LifeBuoy
 } from 'lucide-react';
-import { LifeBuoy } from 'lucide-react';
 import { Link } from '@/i18n/routing';
-import { Footer } from '@/components/Footer';
+import { BottomNav } from '@/components/BottomNav';
 import { UserAvatar } from '@/components/UserAvatar';
 import { NotificationBell } from '@/components/NotificationBell';
 import { useTranslations, useLocale } from 'next-intl';
@@ -47,14 +51,6 @@ interface Profile {
   avatar_url?: string;
 }
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-}
-
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -64,10 +60,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const locale = useLocale();
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
-
-  // Notification State
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   // Mobile Sidebar State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -119,8 +111,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setProfile(data);
 
       if (data && !data.is_blocked) {
-        fetchNotifications(session.user.id);
-
         // Set up realtime subscription to instantly update wallet balance in the header
         // Use a unique channel name to prevent React StrictMode duplicate subscription errors
         const channel = supabase
@@ -149,73 +139,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchNotifications = async (userId: string) => {
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (data) setNotifications(data);
-  };
-
-  const handleMarkAsRead = async (notifId: string) => {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', notifId);
-
-    if (!error) {
-      setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
-    }
-  };
-
-  const handleMarkAllAsRead = async () => {
-    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
-    if (unreadIds.length === 0) return;
-
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .in('id', unreadIds);
-
-    if (!error) {
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    }
-  };
-
-  const getRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const diffInSeconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  };
-
-  const getNotificationIcon = (title?: string) => {
-    const lowerTitle = title?.toLowerCase() || '';
-    if (lowerTitle.includes('warning') || lowerTitle.includes('alert') || lowerTitle.includes('rejected')) {
-      return <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />;
-    }
-    if (lowerTitle.includes('success') || lowerTitle.includes('approved')) {
-      return <CheckCircle className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />;
-    }
-    if (lowerTitle.includes('wallet') || lowerTitle.includes('earn') || lowerTitle.includes('reward')) {
-      return <Wallet className="w-4 h-4 text-brand-accent dark:text-[#00F2FE]" />;
-    }
-    return <Bell className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
-  };
-
-  const getNotificationIconBg = (title?: string) => {
-    const lowerTitle = title?.toLowerCase() || '';
-    if (lowerTitle.includes('warning') || lowerTitle.includes('alert') || lowerTitle.includes('rejected')) return 'bg-orange-100 dark:bg-orange-900/30';
-    if (lowerTitle.includes('success') || lowerTitle.includes('approved')) return 'bg-indigo-100 dark:bg-indigo-900/30';
-    if (lowerTitle.includes('wallet') || lowerTitle.includes('earn') || lowerTitle.includes('reward')) return 'bg-brand-accent/10 dark:bg-brand-accent/20';
-    return 'bg-blue-100 dark:bg-blue-900/30';
   };
 
   const handleLogout = async () => {
@@ -250,21 +173,87 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const sidebarLinks = [
-    { label: t('workerDashboard'), href: '/dashboard', icon: LayoutDashboard },
-    { label: t('availableTasks'), href: '/dashboard/tasks', icon: CheckSquare },
-    { label: t('mySubmissions'), href: '/dashboard/submissions', icon: CheckSquare },
-    { label: t('referralsDownline'), href: '/dashboard/referrals', icon: Users },
-    { label: t('walletWithdraw'), href: '/dashboard/wallet', icon: Wallet },
-    { label: t('activityLog'), href: '/dashboard/activity', icon: Activity },
-    { label: t('depositAdvertise'), href: '/dashboard/deposit', icon: Wallet },
-    { label: t('leaderboard'), href: '/dashboard/leaderboard', icon: Trophy },
+    // 1. Overview
+    { 
+      label: t('workerDashboard'), 
+      href: '/dashboard', 
+      icon: LayoutDashboard,
+      section: t('navOverview') || 'Overview',
+    },
+    { 
+      label: t('leaderboard'), 
+      href: '/dashboard/leaderboard', 
+      icon: Trophy,
+      section: t('navOverview') || 'Overview',
+    },
+    { 
+      label: t('activityLog'), 
+      href: '/dashboard/activity', 
+      icon: Activity,
+      section: t('navOverview') || 'Overview',
+    },
 
-    { label: t('upgradeToPremium'), href: '/dashboard/upgrade', icon: Crown },
-    { label: t('supportTickets'), href: '/dashboard/support', icon: LifeBuoy },
-    { label: t('settings'), href: '/dashboard/settings', icon: Settings },
+    // 2. Task Center
+    { 
+      label: t('availableTasks'), 
+      href: '/dashboard/tasks', 
+      icon: Briefcase,
+      section: t('navTasks') || 'Task Center',
+    },
+    { 
+      label: t('mySubmissions'), 
+      href: '/dashboard/submissions', 
+      icon: ClipboardCheck,
+      section: t('navTasks') || 'Task Center',
+    },
+    { 
+      label: t('manageMyTasks') || (locale === 'bn' ? 'আমার কাজ পরিচালনা' : 'Manage My Tasks'), 
+      href: '/dashboard/manage-tasks', 
+      icon: ListTodo,
+      section: t('navTasks') || 'Task Center',
+    },
+
+    // 3. Finance & Growth
+    { 
+      label: t('walletWithdraw'), 
+      href: '/dashboard/wallet', 
+      icon: Wallet,
+      section: t('navFinance') || 'Finance & Growth',
+    },
+    { 
+      label: t('depositAdvertise'), 
+      href: '/dashboard/deposit', 
+      icon: CreditCard,
+      section: t('navFinance') || 'Finance & Growth',
+    },
+    { 
+      label: t('referralsDownline'), 
+      href: '/dashboard/referrals', 
+      icon: Users,
+      section: t('navFinance') || 'Finance & Growth',
+    },
+
+    // 4. Account & Support
+    { 
+      label: t('upgradeToPremium'), 
+      href: '/dashboard/upgrade', 
+      icon: Crown,
+      isSpecial: true,
+      section: t('navAccount') || 'Account & Support',
+    },
+    { 
+      label: t('supportTickets'), 
+      href: '/dashboard/support', 
+      icon: LifeBuoy,
+      section: t('navAccount') || 'Account & Support',
+    },
+    { 
+      label: t('settings'), 
+      href: '/dashboard/settings', 
+      icon: Settings,
+      section: t('navAccount') || 'Account & Support',
+    },
   ];
-
-  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-slate-100 flex transition-colors">
@@ -298,75 +287,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Notification Bell */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
-              >
-                <Bell className="w-6 h-6" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-dark-card"></span>
-                )}
-              </button>
-
-              {/* Notification Dropdown */}
-              {showNotifications && (
-                <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg overflow-hidden z-50">
-                  <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-[#0f172a]">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-slate-900 dark:text-white">{t('notifications')}</h3>
-                      {unreadCount > 0 && (
-                        <span className="text-[10px] font-bold text-brand-accent bg-brand-accent/10 px-2 py-0.5 rounded-full">{unreadCount} {t('new')}</span>
-                      )}
-                    </div>
-                    {unreadCount > 0 && (
-                      <button onClick={handleMarkAllAsRead} className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer transition-all">
-                        {t('markAllAsRead')}
-                      </button>
-                    )}
-                  </div>
-                  <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-                    {notifications.length === 0 ? (
-                      <div className="p-8 text-center text-slate-500 text-sm flex flex-col items-center gap-3">
-                        <Bell className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-                        No notifications yet.
-                      </div>
-                    ) : (
-                      <div className="flex flex-col">
-                        {notifications.map(notif => (
-                          <div
-                            key={notif.id}
-                            onClick={() => !notif.is_read && handleMarkAsRead(notif.id)}
-                            className={`p-4 flex gap-3 transition-colors ${!notif.is_read ? 'cursor-pointer' : ''} border-b border-slate-100 dark:border-slate-800/50 last:border-0 ${notif.is_read
-                              ? 'bg-transparent'
-                              : 'bg-slate-50 dark:bg-slate-800/50 relative'
-                              }`}
-                          >
-                            {!notif.is_read && (
-                              <div className="absolute top-1/2 -translate-y-1/2 left-2 w-1.5 h-1.5 rounded-full bg-[#00F2FE]" />
-                            )}
-                            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ml-1 ${getNotificationIconBg(notif.title)}`}>
-                              {getNotificationIcon(notif.title)}
-                            </div>
-                            <div className="flex-1 min-w-0 flex flex-col justify-center">
-                              <h4 className={`font-semibold text-sm truncate ${notif.is_read ? 'text-slate-600 dark:text-slate-400 font-medium' : 'text-slate-900 dark:text-slate-100'}`}>
-                                {notif.title}
-                              </h4>
-                              <p className={`text-xs mt-0.5 line-clamp-2 ${notif.is_read ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>
-                                {notif.message}
-                              </p>
-                            </div>
-                            <div className="shrink-0 flex items-start">
-                              <span className="text-[10px] text-slate-400 whitespace-nowrap font-medium mt-0.5">{getRelativeTime(notif.created_at)}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            {profile && <NotificationBell userId={profile.id} />}
 
             {/* Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>
@@ -444,11 +365,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-x-hidden p-8" onClick={() => showNotifications && setShowNotifications(false)}>
+        <main className="flex-1 overflow-x-hidden p-4 sm:p-6 md:p-8 pb-24 md:pb-8">
           {children}
         </main>
 
-        <Footer />
+        <BottomNav />
       </div>
     </div>
   );

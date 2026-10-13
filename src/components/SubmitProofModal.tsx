@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { X, Upload, Loader2, Link as LinkIcon, FileText } from 'lucide-react';
 import { supabase } from '@/utils/supabase';
 import { useTranslations } from 'next-intl';
+import { logActivity } from '@/utils/logger';
 
 interface Task {
   is_premium?: boolean;
@@ -102,6 +103,14 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
         });
 
       if (submitError) throw submitError;
+
+      // Log worker activity
+      await logActivity({
+        userId,
+        actionType: 'task',
+        description: `Submitted proof for Task: ${task.title || 'Task'}`,
+        role: 'worker'
+      });
 
       toast.success(t('successMsg'));
       onSuccess();

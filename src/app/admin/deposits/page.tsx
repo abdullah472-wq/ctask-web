@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 import { Loader2, Check, X, CreditCard, Search } from 'lucide-react';
 import { logAdminAction } from '@/utils/activityLogger';
+import { approveDeposit, rejectDeposit } from '@/app/actions/deposits';
 
 export default function AdminDepositsPage() {
   const [loading, setLoading] = useState(true);
@@ -35,14 +36,12 @@ export default function AdminDepositsPage() {
   const handleApprove = async (dep: any) => {
     setActionLoading(dep.id);
     try {
-      const { error } = await supabase.rpc('approve_deposit', {
-        deposit_id: dep.id,
-        user_uuid: dep.profiles.id,
-        amount: dep.amount
-      });
-      if (error) throw error;
+      const res = await approveDeposit(dep.id, dep.profiles?.id || dep.user_id, Number(dep.amount));
+      if (!res.success) throw new Error(res.error || 'Approval failed');
+
       setDeposits(prev => prev.filter(d => d.id !== dep.id));
-      toast.success(`Approved ${dep.amount} ৳ deposit for ${dep.profiles.full_name}.`);
+      toast.success(`Approved ${dep.amount} ৳ deposit for ${dep.profiles?.full_name || 'user'}.`);
+      await logAdminAction('Approved Deposit', `Approved ${dep.amount} ৳ deposit for ${dep.profiles?.full_name || dep.user_id} (TxID: ${dep.transaction_id})`);
     } catch (err: any) {
       toast.error('Error approving deposit: ' + err.message);
     } finally {
@@ -53,12 +52,12 @@ export default function AdminDepositsPage() {
   const handleReject = async (depId: string) => {
     setActionLoading(depId);
     try {
-      const { error } = await supabase
-        .from('deposits')
-        .update({ status: 'rejected' })
-        .eq('id', depId);
-      if (error) throw error;
+      const res = await rejectDeposit(depId);
+      if (!res.success) throw new Error(res.error || 'Rejection failed');
+
       setDeposits(prev => prev.filter(d => d.id !== depId));
+      toast.success('Deposit request rejected.');
+      await logAdminAction('Rejected Deposit', `Rejected deposit ${depId}`);
     } catch (err: any) {
       toast.error('Error rejecting: ' + err.message);
     } finally {

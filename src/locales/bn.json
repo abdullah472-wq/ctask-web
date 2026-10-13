@@ -27,7 +27,12 @@
     "activityLog": "অ্যাক্টিভিটি লগ",
     "viewAllHistory": "সম্পূর্ণ ইতিহাস দেখুন",
     "earnings": "উপার্জন",
-    "withdrawals": "উত্তোলন"
+    "withdrawals": "উত্তোলন",
+    "navOverview": "ওভারভিউ",
+    "navTasks": "টাস্ক সেন্টার",
+    "navFinance": "অর্থ ও আয়",
+    "navAccount": "অ্যাকাউন্ট ও সহায়তা",
+    "manageMyTasks": "আমার কাজ পরিচালনা"
   },
   "WorkerDashboard": {
     "worker": "কর্মী",
@@ -382,7 +387,22 @@
     "statusPending": "পেন্ডিং",
     "statusVerified": "ভেরিফাইড",
     "statusUnverified": "ভেরিফাইড না",
-    "statusRejected": "বাতিলকৃত"
+    "statusRejected": "বাতিলকৃত",
+    "resubmitDocs": "কাগজপত্র পুনরায় জমা দিন",
+    "activeSessions": "সক্রিয় সেশন এবং ডিভাইস",
+    "currentDevice": "বর্তমান ডিভাইস",
+    "signOutOthers": "অন্যান্য সমস্ত ডিভাইস থেকে সাইন আউট করুন",
+    "notificationPreferences": "নোটিফিকেশন পছন্দসমূহ",
+    "notifTaskUpdates": "টাস্ক প্রুফ আপডেট",
+    "notifTaskUpdatesDesc": "বিজ্ঞাপনদাতারা আপনার টাস্ক প্রুফ অনুমোদন বা প্রত্যাখ্যান করলে তাৎক্ষণিক নোটিফিকেশন পান",
+    "notifWithdrawals": "উত্তোলন ও পেআউট",
+    "notifWithdrawalsDesc": "টাকা উত্তোলনের অনুরোধ অনুমোদন বা পেইড হলে নোটিফিকেশন পান",
+    "notifStreak": "দৈনিক স্ট্রিক রিমাইন্ডার",
+    "notifStreakDesc": "দৈনিক বোনাস দাবি এবং সক্রিয় স্ট্রিক অক্ষুণ্ণ রাখতে রিমাইন্ডার পান",
+    "passwordStrength": "পাসওয়ার্ডের শক্তি",
+    "weak": "দুর্বল",
+    "medium": "মাঝারি",
+    "strong": "শক্তিশালী"
   },
   "ActivityLogPage": {
     "title": "অ্যাক্টিভিটি লগ",

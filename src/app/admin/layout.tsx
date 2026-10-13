@@ -20,9 +20,14 @@ import {
   Settings,
   History,
   MessageSquare,
-  LifeBuoy
+  LifeBuoy,
+  Clock,
+  Activity,
+  ArrowDownCircle,
+  ArrowUpCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import { NotificationBell } from '@/components/NotificationBell';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -95,21 +100,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const sidebarLinks = [
-    { label: 'Overview', href: '/admin', icon: BarChart3 },
-    { label: 'Users', href: '/admin/users', icon: Users },
-    { label: 'Manage Tasks', href: '/admin/manage-tasks', icon: ListTodo },
-    { label: 'Pending Tasks', href: '/admin/pending-tasks', icon: ListTodo, badgeCount: counts.tasks },
-    { label: 'Create Task', href: '/admin/create-task', icon: PlusCircle },
-    { label: 'Review Proofs', href: '/admin/review', icon: CheckCircle, badgeCount: counts.proofs },
-    { label: 'Review History', href: '/admin/review-history', icon: History },
-    { label: 'KYC Reviews', href: '/admin/kyc-review', icon: ShieldAlert, badgeCount: counts.kyc },
-    { label: 'Deposits', href: '/admin/deposits', icon: Landmark },
-    { label: 'Withdrawals', href: '/admin/withdrawals', icon: Landmark, badgeCount: counts.withdrawals },
-    { label: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard },
-    { label: 'Manage Reviews', href: '/admin/manage-reviews', icon: MessageSquare },
-    { label: 'Support Tickets', href: '/admin/tickets', icon: LifeBuoy },
-    { label: 'Activity Logs', href: '/admin/activity-logs', icon: ListTodo },
-    { label: 'Settings', href: '/admin/settings', icon: Settings },
+    // 1. Analytics & Users
+    { label: 'Overview', href: '/admin', icon: BarChart3, section: 'Analytics & Users' },
+    { label: 'Users', href: '/admin/users', icon: Users, section: 'Analytics & Users' },
+    { label: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard, section: 'Analytics & Users' },
+
+    // 2. Task Management
+    { label: 'Manage Tasks', href: '/admin/manage-tasks', icon: ListTodo, section: 'Task Management' },
+    { label: 'Pending Tasks', href: '/admin/pending-tasks', icon: Clock, badgeCount: counts.tasks, section: 'Task Management' },
+    { label: 'Create Task', href: '/admin/create-task', icon: PlusCircle, section: 'Task Management' },
+    { label: 'Review Proofs', href: '/admin/review', icon: CheckCircle, badgeCount: counts.proofs, section: 'Task Management' },
+    { label: 'Review History', href: '/admin/review-history', icon: History, section: 'Task Management' },
+
+    // 3. Finance & Verification
+    { label: 'KYC Reviews', href: '/admin/kyc-review', icon: ShieldAlert, badgeCount: counts.kyc, section: 'Finance & KYC' },
+    { label: 'Deposits', href: '/admin/deposits', icon: ArrowDownCircle, section: 'Finance & KYC' },
+    { label: 'Withdrawals', href: '/admin/withdrawals', icon: ArrowUpCircle, badgeCount: counts.withdrawals, section: 'Finance & KYC' },
+
+    // 4. Operations & System
+    { label: 'Manage Reviews', href: '/admin/manage-reviews', icon: MessageSquare, section: 'System & Support' },
+    { label: 'Support Tickets', href: '/admin/tickets', icon: LifeBuoy, section: 'System & Support' },
+    { label: 'Activity Logs', href: '/admin/activity-logs', icon: Activity, section: 'System & Support' },
+    { label: 'Settings', href: '/admin/settings', icon: Settings, section: 'System & Support' },
   ];
 
   return (
@@ -134,7 +146,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <h1 className="font-bold text-lg text-brand-accent hidden md:block">Admin Panel</h1>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <NotificationBell />
             <Link href="/dashboard" className="text-sm font-medium hover:text-slate-900 dark:hover:text-white text-slate-500 dark:text-slate-400 transition-colors bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-transparent dark:border-slate-800 shadow-sm">
               Exit to Dashboard
             </Link>

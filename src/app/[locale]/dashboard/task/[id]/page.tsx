@@ -3,10 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
-import { Loader2, ArrowLeft, CheckCircle, Clock, Link as LinkIcon, Camera, Crown, Folder, Upload, Users, Copy } from 'lucide-react';
+import { 
+  Loader2, ArrowLeft, CheckCircle, Clock, Link as LinkIcon, Camera, 
+  Crown, Folder, Upload, Users, Copy, Timer, AlertTriangle, Play, RefreshCw, Image as ImageIcon, ExternalLink 
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
+import { startTaskReservation } from '@/app/actions/taskSlot';
 
 interface Task {
   id: string;
@@ -20,6 +24,7 @@ interface Task {
   title_bn?: string;
   description_bn?: string;
   proof_instruction_bn?: string;
+  reference_image_url?: string;
   category?: { name: string };
   subcategory?: { name: string };
   is_premium?: boolean;
@@ -33,7 +38,6 @@ export default function TaskDetailsPage() {
   const tCard = useTranslations('TaskCard');
   const locale = useLocale();
 
-
   const [loading, setLoading] = useState(true);
   const [task, setTask] = useState<Task | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -42,9 +46,14 @@ export default function TaskDetailsPage() {
   const [proofText, setProofText] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [startingTask, setStartingTask] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [checkingLimit, setCheckingLimit] = useState(true);
-  const [existingSubmission, setExistingSubmission] = useState<{status: string} | null>(null);
+  const [existingSubmission, setExistingSubmission] = useState<{ id?: string; status: string; expires_at?: string; started_at?: string } | null>(null);
+
+  // 30-Minute Timer State
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [isExpired, setIsExpired] = useState(false);
 
   const displayTitle = task ? (locale === 'bn' && task.title_bn ? task.title_bn : task.title) : '';
   const displayDesc = task ? (locale === 'bn' && task.description_bn ? task.description_bn : task.description) : '';
@@ -73,14 +82,48 @@ export default function TaskDetailsPage() {
   const checkExistingSubmission = async (uid: string, taskId: string) => {
     const { data } = await supabase
       .from('task_submissions')
-      .select('status')
+      .select('id, status, expires_at, started_at')
       .eq('user_id', uid)
       .eq('task_id', taskId)
       .maybeSingle();
       
     if (data) {
       setExistingSubmission(data);
+      if (data.status === 'in_progress') {
+        const expiresAt = data.expires_at ? new Date(data.expires_at) : null;
+        if (expiresAt) {
+          const remainingSeconds = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
+          setTimeLeft(remainingSeconds);
+          if (remainingSeconds <= 0) {
+            setIsExpired(true);
+          }
+        }
+      }
     }
+  };
+
+  // Decrement countdown timer every second
+  useEffect(() => {
+    if (!existingSubmission || existingSubmission.status !== 'in_progress' || timeLeft <= 0) return;
+
+    const interval = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setIsExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [existingSubmission, timeLeft]);
+
+  const formatTimer = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
   const fetchProfile = async (uid: string) => {
@@ -145,25 +188,46 @@ export default function TaskDetailsPage() {
     }
   };
 
-  const handleSubmitProof = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleStartTask = async () => {
     if (!userId || !task) return;
-    setSubmitting(true);
-
+    setStartingTask(true);
     try {
-      const { data: existingCheck } = await supabase
-        .from('task_submissions')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('task_id', task.id)
-        .maybeSingle();
-
-      if (existingCheck) {
-        toast.error(t('errorAlreadySubmitted'));
-        setSubmitting(false);
+      const res = await startTaskReservation(task.id, userId);
+      if (!res.success) {
+        toast.error(res.error || 'Failed to reserve task slot');
         return;
       }
 
+      toast.success('⏱️ Slot reserved for 30 minutes! Please complete and submit proof.');
+      const expiresDate = new Date(res.expiresAt!);
+      const seconds = Math.max(0, Math.floor((expiresDate.getTime() - Date.now()) / 1000));
+      setTimeLeft(seconds);
+      setIsExpired(false);
+      setExistingSubmission({
+        id: res.submissionId,
+        status: 'in_progress',
+        expires_at: res.expiresAt,
+        started_at: res.startedAt,
+      });
+    } catch (err: any) {
+      toast.error(err.message || 'Error starting task');
+    } finally {
+      setStartingTask(false);
+    }
+  };
+
+  const handleSubmitProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !task) return;
+
+    if (isExpired || timeLeft <= 0) {
+      toast.error('Your slot reservation has expired! Please re-reserve.');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
       let proofImageUrl = '';
       if (proofFile) {
         const fileExt = proofFile.name.split('.').pop();
@@ -183,17 +247,34 @@ export default function TaskDetailsPage() {
         proofImageUrl = publicUrlData.publicUrl;
       }
 
-      const { error: submitError } = await supabase
-        .from('task_submissions')
-        .insert({
-          task_id: task.id,
-          user_id: userId,
-          proof_text: proofText,
-          proof_image_url: proofImageUrl,
-          status: 'pending'
-        });
+      // If user has an existing in_progress reservation, update it
+      if (existingSubmission?.id) {
+        const { error: updateError } = await supabase
+          .from('task_submissions')
+          .update({
+            status: 'pending',
+            proof_text: proofText,
+            proof_image_url: proofImageUrl || null,
+            submitted_at: new Date().toISOString(),
+          })
+          .eq('id', existingSubmission.id);
 
-      if (submitError) throw submitError;
+        if (updateError) throw updateError;
+      } else {
+        // Fallback upsert
+        const { error: submitError } = await supabase
+          .from('task_submissions')
+          .upsert({
+            task_id: task.id,
+            user_id: userId,
+            proof_text: proofText,
+            proof_image_url: proofImageUrl || null,
+            status: 'pending',
+            submitted_at: new Date().toISOString(),
+          });
+
+        if (submitError) throw submitError;
+      }
 
       toast.success(t('successMsg'));
       router.push('/dashboard/submissions');
@@ -243,6 +324,9 @@ export default function TaskDetailsPage() {
     status = tCard('almostFull');
     statusColor = 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
   }
+
+  const isAlreadySubmitted = existingSubmission && ['pending', 'approved', 'rejected'].includes(existingSubmission.status);
+  const isInProgress = existingSubmission?.status === 'in_progress';
 
   return (
     <div className="max-w-5xl mx-auto pb-12 mt-4">
@@ -318,6 +402,34 @@ export default function TaskDetailsPage() {
               </div>
             </div>
 
+            {task.reference_image_url && (
+              <div className="mb-8">
+                <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-brand-accent" />
+                  <span>{locale === 'bn' ? 'নমুনা ছবি / রেফারেন্স স্ক্রিনশট' : 'Reference Screenshot'}</span>
+                </h3>
+                <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-3">
+                  <div className="relative group max-h-[420px] overflow-hidden rounded-xl bg-slate-100 dark:bg-black/30 flex items-center justify-center">
+                    <img 
+                      src={task.reference_image_url} 
+                      alt="Task Reference" 
+                      className="max-h-[420px] w-auto object-contain rounded-xl hover:scale-[1.01] transition-transform cursor-pointer"
+                      onClick={() => window.open(task.reference_image_url, '_blank')}
+                    />
+                    <a
+                      href={task.reference_image_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-black/75 hover:bg-black/90 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-colors shadow-lg"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" /> 
+                      <span>{locale === 'bn' ? 'বড় করে দেখুন' : 'View Full Image'}</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
                 <Camera className="w-5 h-5 text-brand-accent" /> {t('proofReqs')}
@@ -329,12 +441,13 @@ export default function TaskDetailsPage() {
           </div>
         </div>
 
-        {/* Right Column: Submit Proof Form */}
+        {/* Right Column: Reservation & Submit Proof Form */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm sticky top-28">
-            <h2 className="text-xl font-bold mb-6">{t('submitWork')}</h2>
+          <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm sticky top-28 space-y-6">
+            <h2 className="text-xl font-bold">{t('submitWork')}</h2>
             
-            {existingSubmission ? (
+            {/* Case 1: Already Submitted */}
+            {isAlreadySubmitted ? (
               <div className="bg-indigo-500/10 border border-indigo-500/30 p-6 rounded-2xl text-center">
                 <CheckCircle className="w-10 h-10 text-indigo-500 mx-auto mb-3" />
                 <h4 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mb-2">{t('alreadySubmitted')}</h4>
@@ -377,55 +490,123 @@ export default function TaskDetailsPage() {
                   {t('upgradeToPremium')}
                 </Link>
               </div>
-            ) : (
-              <form onSubmit={handleSubmitProof} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('proofText')}</label>
-                  <textarea
-                    required
-                    value={proofText}
-                    onChange={e => setProofText(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all h-32 resize-none"
-                    placeholder={t('proofTextPlaceholder')}
-                  />
+            ) : !isInProgress ? (
+              /* Case 2: Not Started - Show Start Task & Slot Reservation Card */
+              <div className="p-6 rounded-2xl bg-purple-50 dark:bg-purple-950/20 border-2 border-dashed border-purple-300 dark:border-purple-800 text-center space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-purple-100 dark:bg-purple-900/40 text-[#5A189A] dark:text-[#7B2CBF] flex items-center justify-center mx-auto">
+                  <Timer className="w-7 h-7 animate-pulse" />
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('screenshotOptional')}</label>
-                  <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center hover:border-brand-accent transition-colors bg-slate-50 dark:bg-white/5 group">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={e => setProofFile(e.target.files?.[0] || null)}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-brand-accent transition-colors" />
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                      {proofFile ? (
-                        <span className="text-brand-primary flex items-center justify-center gap-1"><CheckCircle className="w-4 h-4"/> {proofFile.name}</span>
-                      ) : (
-                        t('uploadPrompt')
-                      )}
-                    </p>
-                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Start Task & Reserve Slot</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Clicking Start reserves 1 slot for you for <strong>30 minutes</strong>. Complete the instructions and submit proof before time runs out.
+                  </p>
                 </div>
 
                 <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all shadow-lg shadow-brand-accent/20"
+                  onClick={handleStartTask}
+                  disabled={startingTask}
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-[#5A189A] to-[#7B2CBF] hover:opacity-95 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  {submitting ? (
+                  {startingTask ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" /> {t('submitting')}
+                      <Loader2 className="w-5 h-5 animate-spin" /> Reserving Slot...
                     </>
                   ) : (
                     <>
-                      {t('submitBtn')}
+                      <Play className="w-5 h-5 fill-current" /> Start Task (30:00 Slot)
                     </>
                   )}
                 </button>
-              </form>
+              </div>
+            ) : isExpired ? (
+              /* Case 3: In Progress but Expired */
+              <div className="p-6 rounded-2xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-center space-y-4">
+                <AlertTriangle className="w-10 h-10 text-red-500 mx-auto" />
+                <h4 className="text-lg font-bold text-red-600 dark:text-red-400">Slot Expired</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Your 30-minute slot reservation expired. The slot has been freed for other workers.
+                </p>
+                <button
+                  onClick={handleStartTask}
+                  disabled={startingTask}
+                  className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 font-bold flex items-center justify-center gap-2 transition-all"
+                >
+                  {startingTask ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  Re-Reserve Slot
+                </button>
+              </div>
+            ) : (
+              /* Case 4: In Progress with Active Countdown Timer */
+              <div className="space-y-6">
+                {/* Countdown Timer Header */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                      <Timer className="w-5 h-5 animate-spin" style={{ animationDuration: '6s' }} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">Time Left</p>
+                      <p className="text-2xl font-black font-mono text-slate-900 dark:text-white">
+                        {formatTimer(timeLeft)}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                    Slot Reserved
+                  </span>
+                </div>
+
+                {/* Proof Submission Form */}
+                <form onSubmit={handleSubmitProof} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('proofText')}</label>
+                    <textarea
+                      required
+                      value={proofText}
+                      onChange={e => setProofText(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all h-32 resize-none"
+                      placeholder={t('proofTextPlaceholder')}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('screenshotOptional')}</label>
+                    <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center hover:border-brand-accent transition-colors bg-slate-50 dark:bg-white/5 group">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => setProofFile(e.target.files?.[0] || null)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-brand-accent transition-colors" />
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                        {proofFile ? (
+                          <span className="text-brand-primary flex items-center justify-center gap-1"><CheckCircle className="w-4 h-4"/> {proofFile.name}</span>
+                        ) : (
+                          t('uploadPrompt')
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submitting || timeLeft <= 0}
+                    className="w-full py-4 rounded-xl bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all shadow-lg shadow-brand-accent/20"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" /> {t('submitting')}
+                      </>
+                    ) : (
+                      <>
+                        {t('submitBtn')}
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
             )}
           </div>
         </div>

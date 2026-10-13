@@ -6,10 +6,46 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useTranslations } from 'next-intl';
-import { Loader2, CheckCircle, Gift, Wallet, Banknote, CheckSquare, TrendingUp, XCircle, ArrowUpRight, Clock, Download } from 'lucide-react';
+import { Loader2, CheckCircle, Gift, Wallet, Banknote, CheckSquare, TrendingUp, XCircle, Clock, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { syncDailyStreak, claimDailyBonusAction } from '@/app/actions/streak';
+
+/**
+ * Returns today's date formatted as YYYY-MM-DD in Bangladesh Time (Asia/Dhaka).
+ */
+const getDhakaTodayDateString = () => {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Dhaka',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+};
+
+/**
+ * Safely parses any date value (ISO, UTC, timestamp or date string)
+ * and normalizes it to YYYY-MM-DD in Bangladesh Time (Asia/Dhaka).
+ */
+const formatToDhakaDate = (val?: string | Date | null): string => {
+  if (!val) return '';
+  try {
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+      return val.trim();
+    }
+    const d = new Date(val);
+    if (isNaN(d.getTime())) {
+      return typeof val === 'string' ? val.split('T')[0] : '';
+    }
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Dhaka',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d);
+  } catch {
+    return typeof val === 'string' ? val.split('T')[0] : '';
+  }
+};
 
 export default function WorkerDashboardPage() {
   const t = useTranslations('Dashboard');
@@ -20,7 +56,6 @@ export default function WorkerDashboardPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [claiming, setClaiming] = useState(false);
-  const [hideBanner, setHideBanner] = useState(false);
   
   // Dynamic Stats
   const [taskStats, setTaskStats] = useState({
@@ -44,6 +79,13 @@ export default function WorkerDashboardPage() {
       
       const sessionName = session.user.user_metadata?.full_name;
       
+      // Auto-Sync login streak in background using Bangladesh Time
+      try {
+        await syncDailyStreak(session.user.id);
+      } catch (err) {
+        console.warn('Auto-sync streak warning:', err);
+      }
+
       await fetchProfile(session.user.id, sessionName);
       await fetchStats(session.user.id);
     }
@@ -61,6 +103,9 @@ export default function WorkerDashboardPage() {
       if (!data.full_name && fallbackName) {
         data.full_name = fallbackName;
       }
+      // Ensure current_streak is dynamically bound and never stuck at 0
+      const activeStreak = Math.max(1, Number(data.current_streak ?? data.check_in_streak ?? 1));
+      data.current_streak = activeStreak;
       setUserProfile(data);
     }
   };
@@ -78,7 +123,7 @@ export default function WorkerDashboardPage() {
       .select('*')
       .eq('user_id', uid)
       .order('created_at', { ascending: false })
-      .limit(3);
+      .limit(10);
 
     // Fetch Withdrawals
     const { data: withdrawals } = await supabase
@@ -116,7 +161,7 @@ export default function WorkerDashboardPage() {
           title: title,
           amount: tx.type === 'withdrawal' ? `-৳ ${Number(tx.amount).toFixed(2)}` : `+৳ ${Number(tx.amount).toFixed(2)}`,
           reason: tx.description || '',
-          time: new Date(tx.created_at).toLocaleDateString()
+          time: new Date(tx.created_at).toLocaleDateString('en-US')
         };
       });
     }
@@ -189,12 +234,23 @@ export default function WorkerDashboardPage() {
     if (!userId) return;
     setClaiming(true);
     try {
-      const { error } = await supabase.rpc('claim_daily_bonus', { user_uuid: userId });
-      if (error) throw error;
+      const res = await claimDailyBonusAction(userId);
+      if (!res.success) {
+        throw new Error(res.error || 'Error claiming bonus.');
+      }
       
       toast.success('🎉 You successfully claimed your 1.00 ৳ daily bonus!');
-      setHideBanner(true);
-      fetchProfile(userId); // Refresh profile state in background
+      
+      const todayDhaka = getDhakaTodayDateString();
+      setUserProfile((prev: any) => ({
+        ...prev,
+        wallet_balance: res.balance ?? ((prev?.wallet_balance || 0) + 1.00),
+        total_earned: (prev?.total_earned || 0) + 1.00,
+        current_streak: res.currentStreak ?? ((prev?.current_streak || 0) + 1),
+        check_in_streak: res.currentStreak ?? ((prev?.check_in_streak || 0) + 1),
+        last_check_in_date: res.lastCheckInDate ?? todayDhaka,
+        last_checkin_date: res.lastCheckInDate ?? todayDhaka,
+      }));
     } catch (err: any) {
       toast.error(err.message || 'Error claiming bonus.');
     } finally {
@@ -202,43 +258,332 @@ export default function WorkerDashboardPage() {
     }
   };
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const hasClaimedToday = userProfile?.last_check_in_date === todayStr;
-  const shouldShowBanner = !hasClaimedToday && !hideBanner;
+  const todayDhaka = getDhakaTodayDateString();
+  const rawLastCheckIn = userProfile?.last_checkin_date || userProfile?.last_check_in_date || userProfile?.last_check_in;
+  const lastCheckInFormatted = formatToDhakaDate(rawLastCheckIn);
+  const hasClaimedToday = Boolean(lastCheckInFormatted && lastCheckInFormatted === todayDhaka);
+  const currentStreakCount = Math.max(1, Number(userProfile?.current_streak ?? userProfile?.check_in_streak ?? 1));
 
-  const handleDownloadPDF = async () => {
-    const element = document.getElementById('stats-container');
-    if (!element) return;
-    
-    document.body.classList.add('printing');
-    
-    try {
-      toast.loading('Generating PDF...', { id: 'pdf-toast' });
-      const isDark = document.documentElement.classList.contains('dark');
-      if (isDark) document.documentElement.classList.remove('dark');
-      
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-      });
-      
-      if (isDark) document.documentElement.classList.add('dark');
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Ctask_Earnings_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-      toast.success('PDF Downloaded!', { id: 'pdf-toast' });
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to generate PDF', { id: 'pdf-toast' });
-    } finally {
-      document.body.classList.remove('printing');
+  const handleDownloadPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Pop-up was blocked. Please allow pop-ups for this site.');
+      return;
     }
+
+    const reportDate = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Dhaka',
+      dateStyle: 'long',
+      timeStyle: 'medium',
+    }).format(new Date());
+
+    const userName = userProfile?.full_name || 'Worker';
+    const streakStr = `${currentStreakCount} Day${currentStreakCount !== 1 ? 's' : ''}`;
+    const balanceNum = Number(userProfile?.wallet_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const earnedNum = Number(userProfile?.total_earned || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const withdrawnNum = Number(totalWithdrawn || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const completedNum = Number(taskStats.approved || 0).toLocaleString('en-US');
+    const startedNum = Number(taskStats.totalStarted || 0).toLocaleString('en-US');
+    const pendingNum = Number(taskStats.pending || 0).toLocaleString('en-US');
+    const rejectedNum = Number(taskStats.rejected || 0).toLocaleString('en-US');
+    const approvedCount = Number(taskStats.approved || 0);
+    const rejectedCount = Number(taskStats.rejected || 0);
+    const totalRated = approvedCount + rejectedCount;
+    const successRate = totalRated > 0 ? Math.round((approvedCount / totalRated) * 100) : 0;
+    const successRateStr = `${successRate}%`;
+
+    const txRows = activityFeed.length > 0 ? activityFeed.map((item: any) => `
+      <tr>
+        <td>${item.time || 'N/A'}</td>
+        <td style="font-weight: 600;">${item.title || 'Transaction'}</td>
+        <td>${item.reason ? `<span style="color: #64748b;">${item.reason}</span>` : '—'}</td>
+        <td>
+          <span class="badge badge-${item.type || 'pending'}">
+            ${item.type ? (item.type.charAt(0).toUpperCase() + item.type.slice(1)) : 'Completed'}
+          </span>
+        </td>
+        <td style="font-weight: 700; text-align: right; ${item.amount?.startsWith('-') ? 'color: #dc2626;' : 'color: #16a34a;'}">
+          ${item.amount || '৳ 0.00'}
+        </td>
+      </tr>
+    `).join('') : `
+      <tr>
+        <td colspan="5" style="text-align: center; color: #94a3b8; padding: 24px;">No recent transactions recorded.</td>
+      </tr>
+    `;
+
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Ctask Worker Statement - ${userName}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 15mm 20mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      margin: 0;
+      padding: 24px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #5A189A;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .brand-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #5A189A;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+    .brand-sub {
+      font-size: 12px;
+      color: #64748b;
+      margin: 4px 0 0 0;
+      font-weight: 500;
+    }
+    .report-meta {
+      text-align: right;
+      font-size: 12px;
+      color: #475569;
+    }
+    .user-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .user-info h2 {
+      margin: 0;
+      font-size: 16px;
+      color: #0f172a;
+    }
+    .user-info p {
+      margin: 3px 0 0 0;
+      font-size: 12px;
+      color: #64748b;
+    }
+    .badge-pill {
+      background: #ede9fe;
+      color: #5b21b6;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 20px 0 10px 0;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .summary-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #fafafc;
+    }
+    .summary-box .label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .summary-box .value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .summary-box .value.highlight {
+      color: #5A189A;
+    }
+    .summary-box .value.success {
+      color: #16a34a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 24px;
+    }
+    th {
+      background-color: #f1f5f9;
+      color: #334155;
+      font-weight: 600;
+      text-align: left;
+      padding: 9px 12px;
+      border: 1px solid #e2e8f0;
+      font-size: 12px;
+    }
+    td {
+      padding: 9px 12px;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
+      font-size: 12px;
+    }
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-approved { background: #dcfce7; color: #15803d; }
+    .badge-pending { background: #fef3c7; color: #b45309; }
+    .badge-rejected { background: #fee2e2; color: #b91c1c; }
+    .footer {
+      margin-top: 36px;
+      padding-top: 16px;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1 class="brand-title">Ctask</h1>
+      <p class="brand-sub">Microtask & Freelancing Platform</p>
+    </div>
+    <div class="report-meta">
+      <div><strong>Document:</strong> Worker Account & Earnings Statement</div>
+      <div><strong>Date:</strong> ${reportDate}</div>
+      <div><strong>Timezone:</strong> Bangladesh Standard Time (BST)</div>
+    </div>
+  </div>
+
+  <div class="user-card">
+    <div class="user-info">
+      <h2>${userName}</h2>
+      <p>Account Status: Active Worker &bull; Active for ${getAccountAge(userProfile?.created_at)}</p>
+    </div>
+    <div>
+      <span class="badge-pill">Daily Streak: ${streakStr} 🔥</span>
+    </div>
+  </div>
+
+  <div class="section-title">Account Summary</div>
+  <div class="summary-grid">
+    <div class="summary-box">
+      <div class="label">Available Balance</div>
+      <div class="value highlight">৳ ${balanceNum}</div>
+    </div>
+    <div class="summary-box">
+      <div class="label">Total Earned</div>
+      <div class="value success">৳ ${earnedNum}</div>
+    </div>
+    <div class="summary-box">
+      <div class="label">Total Withdrawn</div>
+      <div class="value">৳ ${withdrawnNum}</div>
+    </div>
+    <div class="summary-box">
+      <div class="label">Daily Login Streak</div>
+      <div class="value highlight">${streakStr}</div>
+    </div>
+    <div class="summary-box">
+      <div class="label">Tasks Completed</div>
+      <div class="value">${completedNum}</div>
+    </div>
+    <div class="summary-box">
+      <div class="label">Success Rate</div>
+      <div class="value success">${successRateStr}</div>
+    </div>
+  </div>
+
+  <div class="section-title">Task Performance Breakdown</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Total Started</th>
+        <th>Approved</th>
+        <th>Pending Review</th>
+        <th>Rejected</th>
+        <th>Approval Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="font-weight: 700;">${startedNum}</td>
+        <td style="color: #16a34a; font-weight: 700;">${completedNum}</td>
+        <td style="color: #d97706; font-weight: 700;">${pendingNum}</td>
+        <td style="color: #dc2626; font-weight: 700;">${rejectedNum}</td>
+        <td style="font-weight: 700;">${successRateStr}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Recent Transactions & Activity</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 18%;">Date</th>
+        <th style="width: 25%;">Activity Type</th>
+        <th style="width: 30%;">Details / Reason</th>
+        <th style="width: 12%;">Status</th>
+        <th style="width: 15%; text-align: right;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${txRows}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    This is an official computer-generated statement from Ctask. All currency amounts are in Bangladeshi Taka (BDT ৳).
+  </div>
+</body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+
+    setTimeout(() => {
+      try {
+        printWindow.focus();
+        printWindow.print();
+      } catch (e) {}
+    }, 500);
   };
   
   const getAccountAge = (createdAt: string | undefined) => {
@@ -265,101 +610,122 @@ export default function WorkerDashboardPage() {
     );
   }
 
-  const successRate = taskStats.totalStarted > 0 ? Math.round((taskStats.approved / taskStats.totalStarted) * 100) : 0;
+  const approvedCount = Number(taskStats.approved || 0);
+  const rejectedCount = Number(taskStats.rejected || 0);
+  const totalRated = approvedCount + rejectedCount;
+  const successRate = totalRated > 0 ? Math.round((approvedCount / totalRated) * 100) : 0;
   const balance = userProfile?.wallet_balance || 0;
   const totalEarned = userProfile?.total_earned || 0;
 
   return (
     <>
       {/* Header and Download Button */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      {/* Header and Download Button */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{tw('welcomeBack', { name: userProfile?.full_name?.split(' ')[0] || tw('worker') })}</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[#5A189A] dark:text-[#7B2CBF]" />
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-1.5 sm:mb-2">{tw('welcomeBack', { name: userProfile?.full_name?.split(' ')[0] || tw('worker') })}</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#5A189A] dark:text-[#7B2CBF]" />
             {tw('activeFor', { time: getAccountAge(userProfile?.created_at) })}
           </p>
         </div>
         <button 
           onClick={handleDownloadPDF} 
-          className="print-hide flex items-center gap-2 bg-[#5A189A] hover:bg-[#5A189A]/90 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-md"
+          className="print-hide w-full sm:w-auto justify-center flex items-center gap-2 bg-[#5A189A] hover:bg-[#5A189A]/90 text-white px-4 sm:px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base transition-all shadow-md active:scale-95"
         >
-          <Download className="w-5 h-5" /> {tw('downloadReport')}
+          <Download className="w-4 h-4 sm:w-5 sm:h-5" /> {tw('downloadReport')}
         </button>
       </div>
 
-      {/* Daily Bonus Card (Moved to Top) */}
-      {shouldShowBanner && (
-        <div className="print-hide mb-8 bg-gradient-to-r from-[#5A189A] to-[#7B2CBF] rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl relative overflow-hidden">
+      {/* Daily Bonus Card (Hidden completely once claimed today) */}
+      {!hasClaimedToday && (
+        <div className="print-hide mb-6 sm:mb-8 bg-gradient-to-r from-[#5A189A] to-[#7B2CBF] rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 shadow-xl relative overflow-hidden border border-purple-500/20">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-3xl -z-0 -translate-y-1/2 translate-x-1/2" />
           
-          <div className="flex items-center gap-4 z-10">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white shadow-inner">
-              <Gift className="w-8 h-8" />
+          <div className="flex items-center gap-3.5 sm:gap-4 z-10 w-full sm:w-auto">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white shadow-inner shrink-0">
+              <Gift className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white mb-1">{tw('dailyCheckInBonus')}</h2>
-              <p className="text-white/80 text-sm font-medium">
-                {tw('currentStreak')} <span className="font-bold text-yellow-300">{userProfile?.current_streak || 0} 🔥</span>
+              <h2 className="text-base sm:text-xl font-bold text-white mb-0.5 sm:mb-1">{tw('dailyCheckInBonus')}</h2>
+              <p className="text-white/80 text-xs sm:text-sm font-medium">
+                {tw('currentStreak')} <span className="font-bold text-yellow-300">{currentStreakCount} 🔥</span>
               </p>
             </div>
           </div>
 
           <button 
             onClick={handleClaimBonus}
-            disabled={hasClaimedToday || claiming}
-            className={`px-8 py-4 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 z-10 ${hasClaimedToday ? 'bg-white/20 text-white/70 cursor-not-allowed border border-white/10 backdrop-blur-md' : 'bg-white text-[#5A189A] hover:scale-105 hover:shadow-xl'}`}
+            disabled={claiming}
+            className="w-full sm:w-auto justify-center px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-base transition-all shadow-lg flex items-center gap-2 z-10 bg-white text-[#5A189A] hover:scale-105 hover:shadow-xl active:scale-95"
           >
-            {claiming ? <Loader2 className="w-5 h-5 animate-spin" /> : hasClaimedToday ? <CheckCircle className="w-5 h-5" /> : null}
-            {hasClaimedToday ? tw('alreadyClaimed') : tw('claimBonus')}
+            {claiming && <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />}
+            {tw('claimBonus')}
           </button>
         </div>
       )}
 
       <div id="stats-container" className="mb-12">
-        {/* 1. Top Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Available Balance */}
-          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300">
-              <Wallet className="w-6 h-6" />
+        {/* 1. Top Summary Cards (2-column on mobile, 4-column on desktop) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full mb-8">
+          {/* Financial Card 1: Available Balance */}
+          <div className="bg-gradient-to-br from-[#5A189A] to-[#7B2CBF] text-white shadow-md rounded-2xl p-4 sm:p-5 border-none h-full flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner shrink-0">
+                <Wallet className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <Link 
+                href={`/${locale}/dashboard/wallet`}
+                className="px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-white/20 hover:bg-white/30 border border-white/25 text-[11px] sm:text-xs font-bold text-white transition-all active:scale-95 whitespace-nowrap"
+              >
+                {t('walletWithdraw') || 'Withdraw'} &rarr;
+              </Link>
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{tw('availableBalance')}</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">৳ {balance.toFixed(2)}</h3>
+              <p className="text-xs sm:text-sm font-medium text-white/80 line-clamp-1">{tw('availableBalance')}</p>
+              <h3 className="text-lg sm:text-2xl font-extrabold text-white tracking-tight truncate">৳ {balance.toFixed(2)}</h3>
             </div>
           </div>
 
-          {/* Total Earned */}
-          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#5A189A]/10 flex items-center justify-center text-[#5A189A]">
-              <Banknote className="w-6 h-6" />
+          {/* Financial Card 2: Total Earned */}
+          <div className="bg-gradient-to-br from-[#5A189A] to-[#7B2CBF] text-white shadow-md rounded-2xl p-4 sm:p-5 border-none h-full flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner shrink-0">
+                <Banknote className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-white/20 text-white text-[10px] sm:text-xs font-bold border border-white/30 whitespace-nowrap">
+                Active
+              </span>
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('totalEarned')}</p>
-              <h3 className="text-2xl font-bold text-[#5A189A]">৳ {totalEarned.toFixed(2)}</h3>
+              <p className="text-xs sm:text-sm font-medium text-white/80 line-clamp-1">{t('totalEarned')}</p>
+              <h3 className="text-lg sm:text-2xl font-extrabold text-white tracking-tight truncate">৳ {totalEarned.toFixed(2)}</h3>
             </div>
           </div>
 
-          {/* Tasks Completed */}
-          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300">
-              <CheckSquare className="w-6 h-6" />
+          {/* Metric Card 1: Tasks Completed */}
+          <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 h-full flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-50 dark:bg-purple-950/50 border border-purple-100 dark:border-purple-900/30 flex items-center justify-center text-[#5A189A] dark:text-[#7B2CBF] shrink-0">
+                <CheckSquare className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{tw('tasksCompleted')}</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{taskStats.approved}</h3>
+              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 line-clamp-1">{tw('tasksCompleted')}</p>
+              <h3 className="text-lg sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight truncate">{taskStats.approved}</h3>
             </div>
           </div>
 
-          {/* Success Rate */}
-          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300">
-              <TrendingUp className="w-6 h-6" />
+          {/* Metric Card 2: Success Rate */}
+          <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 h-full flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{tw('successRate')}</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{successRate}%</h3>
+              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 line-clamp-1">{tw('successRate')}</p>
+              <h3 className="text-lg sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight truncate">{successRate}%</h3>
             </div>
           </div>
         </div>
@@ -370,32 +736,32 @@ export default function WorkerDashboardPage() {
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Task Statistics Section */}
-            <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm h-fit">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">{tw('taskStatistics')}</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-center">
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{tw('totalStarted')}</p>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">{taskStats.totalStarted}</p>
+            {/* Task Statistics Section (Compact 2x2 grid on mobile) */}
+            <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm h-fit">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-4 sm:mb-6">{tw('taskStatistics')}</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-center">
+                  <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{tw('totalStarted')}</p>
+                  <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">{taskStats.totalStarted}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-center">
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{tw('pending')}</p>
-                  <p className="text-xl font-bold text-amber-500">{taskStats.pending}</p>
+                <div className="p-3.5 sm:p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100/80 dark:border-amber-900/30 text-center">
+                  <p className="text-xs sm:text-sm font-medium text-amber-700/80 dark:text-amber-400/80 mb-1">{tw('pending')}</p>
+                  <p className="text-lg sm:text-xl font-bold text-amber-600 dark:text-amber-400">{taskStats.pending}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 text-center">
-                  <p className="text-sm font-medium text-green-600/70 dark:text-green-500/70 mb-1">{tw('approved')}</p>
-                  <p className="text-xl font-bold text-green-600 dark:text-green-500">{taskStats.approved}</p>
+                <div className="p-3.5 sm:p-4 rounded-xl bg-green-50/60 dark:bg-green-950/20 border border-green-100/80 dark:border-green-900/30 text-center">
+                  <p className="text-xs sm:text-sm font-medium text-green-700/80 dark:text-green-400/80 mb-1">{tw('approved')}</p>
+                  <p className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400">{taskStats.approved}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 text-center">
-                  <p className="text-sm font-medium text-red-600/70 dark:text-red-500/70 mb-1">{tw('rejected')}</p>
-                  <p className="text-xl font-bold text-red-600 dark:text-red-500">{taskStats.rejected}</p>
+                <div className="p-3.5 sm:p-4 rounded-xl bg-red-50/60 dark:bg-red-950/20 border border-red-100/80 dark:border-red-900/30 text-center">
+                  <p className="text-xs sm:text-sm font-medium text-red-700/80 dark:text-red-400/80 mb-1">{tw('rejected')}</p>
+                  <p className="text-lg sm:text-xl font-bold text-red-600 dark:text-red-400">{taskStats.rejected}</p>
                 </div>
               </div>
             </div>
 
             {/* Earnings Statistics Section */}
-            <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">{tw('earningsBreakdown')}</h3>
+            <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-4 sm:mb-6">{tw('earningsBreakdown')}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 text-center border-r border-slate-200 dark:border-slate-800">
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{t('totalEarned')}</p>
@@ -442,26 +808,60 @@ export default function WorkerDashboardPage() {
           <div className="space-y-6">
             
             {/* Performance Widget */}
-            <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">{tw('performance')}</h3>
+            <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-4 sm:mb-6">{tw('performance')}</h3>
               
               <div className="flex flex-col items-center justify-center mb-6">
-                <div className="relative w-32 h-32 flex items-center justify-center">
+                <div className="relative w-36 h-36 flex items-center justify-center">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <defs>
+                      <linearGradient id="performancePurpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#5A189A" />
+                        <stop offset="100%" stopColor="#7B2CBF" />
+                      </linearGradient>
+                    </defs>
                     <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-100 dark:text-slate-800" />
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="#5A189A" strokeWidth="8" strokeDasharray={`${2 * Math.PI * 45}`} strokeDashoffset={`${2 * Math.PI * 45 * (1 - successRate / 100)}`} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+                    <circle 
+                      cx="50" 
+                      cy="50" 
+                      r="45" 
+                      fill="none" 
+                      stroke="url(#performancePurpleGradient)" 
+                      strokeWidth="8" 
+                      strokeDasharray={`${2 * Math.PI * 45}`} 
+                      strokeDashoffset={`${2 * Math.PI * 45 * (1 - successRate / 100)}`} 
+                      strokeLinecap="round" 
+                      className="transition-all duration-1000 ease-out" 
+                    />
                   </svg>
                   <div className="absolute flex flex-col items-center">
-                    <span className="text-3xl font-bold text-slate-900 dark:text-white">{successRate}%</span>
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{tw('approvalRate')}</span>
+                    <span className="text-3xl font-extrabold text-slate-900 dark:text-white">{successRate}%</span>
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">{tw('approvalRate')}</span>
                   </div>
                 </div>
+
+                {/* Submissions Breakdown */}
+                <div className="w-full grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
+                  <div className="p-2.5 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-100 dark:border-green-900/30">
+                    <span className="block text-lg font-bold text-green-600 dark:text-green-400">{approvedCount}</span>
+                    <span className="text-[11px] font-medium text-green-700/80 dark:text-green-400/80">{tw('approved')}</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30">
+                    <span className="block text-lg font-bold text-red-600 dark:text-red-400">{rejectedCount}</span>
+                    <span className="text-[11px] font-medium text-red-700/80 dark:text-red-400/80">{tw('rejected')}</span>
+                  </div>
+                </div>
+                {totalRated === 0 && (
+                  <p className="text-[11px] text-slate-400 mt-2 text-center">
+                    No reviewed submissions yet (pending tasks are excluded)
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Recent Activity Feed */}
-            <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm h-fit">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">{tw('recentActivity')}</h3>
+            <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm h-fit">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-4 sm:mb-6">{tw('recentActivity')}</h3>
               <div className="space-y-6 max-h-[220px] overflow-y-auto scrollbar-thin pr-2">
                 {activityFeed.length === 0 ? (
                   <p className="text-slate-500 text-sm text-center">{tw('noRecentActivity')}</p>
