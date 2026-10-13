@@ -66,10 +66,27 @@ export default function PendingTasksPage() {
       // Refund the cost
       const totalCost = (Number(task.reward_amount) * Number(task.total_slots)) * 1.10; // includes 10% commission
 
-      await supabase.rpc('add_deposit_balance', {
+      const { error: rpcErr } = await supabase.rpc('add_deposit_balance', {
         user_uuid: task.creator_id,
         amount: totalCost
       });
+
+      if (rpcErr) {
+        console.warn('add_deposit_balance RPC missing, falling back to direct update:', rpcErr.message);
+        const { data: creatorProfile } = await supabase
+          .from('profiles')
+          .select('deposit_balance')
+          .eq('id', task.creator_id)
+          .single();
+        if (creatorProfile) {
+          await supabase
+            .from('profiles')
+            .update({
+              deposit_balance: Number(creatorProfile.deposit_balance || 0) + totalCost
+            })
+            .eq('id', task.creator_id);
+        }
+      }
 
       toast.success('Task rejected and deposit refunded.');
       await logAdminAction('Rejected Task Posting', `Rejected task "${task.title}" by ${task.profiles?.full_name} and refunded ${totalCost.toFixed(2)}৳`);

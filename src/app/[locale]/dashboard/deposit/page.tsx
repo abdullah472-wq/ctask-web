@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import { submitDepositRequest } from '@/app/actions/deposits';
+import { createCreatorTask } from '@/app/actions/createTask';
 import { getSiteSettings } from '@/app/actions/siteSettings';
 import { logActivity } from '@/utils/logger';
 
@@ -255,79 +256,36 @@ export default function DepositAndTaskPage() {
     }
 
     try {
-      // 2. Deduct balance first via atomic RPC
-      const { error: deductError } = await supabase.rpc('deduct_deposit_for_task', {
-        user_uuid: userId,
-        total_cost: totalCost
-      });
-
-      if (deductError) throw deductError;
-
       const selectedCategory = categories.find(c => c.id === taskData.category_id);
 
-      const basePayload: Record<string, any> = {
-        title: taskData.title,
-        description: taskData.description,
-        task_url: taskData.task_url || null,
-        reward_amount: Number(taskData.reward_amount),
-        total_slots: Number(taskData.total_slots),
-        completed_slots: 0,
-        proof_instruction: taskData.proof_instruction,
-        category_id: taskData.category_id || null,
-        category: selectedCategory?.name || 'Others',
-        subcategory_id: taskData.subcategory_id || null,
-        is_premium: taskData.is_premium,
-        expires_at: taskData.expires_at ? new Date(taskData.expires_at).toISOString() : null,
-        is_active: true,
-        status: 'pending', // strict pending for admin approval
-        creator_id: userId
-      };
-
-      const fullPayload: Record<string, any> = {
-        ...basePayload,
-        title_bn: taskData.title_bn || null,
-        description_bn: taskData.description_bn || null,
-        proof_instruction_bn: taskData.proof_instruction_bn || null,
-        reference_image_url: finalReferenceImageUrl || null,
-      };
-
-      // 3. Attempt Insert with full bilingual & reference image payload
-      let { error: insertError } = await supabase
-        .from('tasks')
-        .insert(fullPayload);
-
-      // Gracefully retry with basePayload if DB missing columns in schema cache
-      if (insertError && (
-        insertError.message.includes('column') || 
-        insertError.message.includes('schema cache') || 
-        insertError.message.includes('description_bn') || 
-        insertError.message.includes('title_bn') || 
-        insertError.message.includes('proof_instruction_bn') ||
-        insertError.message.includes('reference_image_url') ||
-        (insertError as any).code === 'PGRST204'
-      )) {
-        console.warn('Tasks table missing columns in schema cache, retrying with base schema...', insertError.message);
-        const fallbackResult = await supabase
-          .from('tasks')
-          .insert(basePayload);
-        insertError = fallbackResult.error;
-      }
-
-      if (insertError) {
-        // Refund if insertion failed
-        await supabase.rpc('add_deposit_balance', {
-          user_uuid: userId,
-          amount: totalCost
-        });
-        throw insertError;
-      }
-
-      await logActivity({
-        userId: userId || undefined,
-        actionType: 'task',
-        description: `Created a new task: ${taskData.title}`,
-        role: 'creator',
+      // 2. Call secure server action to deduct balance and insert task
+      const res = await createCreatorTask({
+        userId,
+        totalCost,
+        taskData: {
+          title: taskData.title,
+          title_bn: taskData.title_bn,
+          description: taskData.description,
+          description_bn: taskData.description_bn,
+          task_url: taskData.task_url || undefined,
+          reward_amount: Number(taskData.reward_amount),
+          total_slots: Number(taskData.total_slots),
+          proof_instruction: taskData.proof_instruction,
+          proof_instruction_bn: taskData.proof_instruction_bn,
+          category_id: taskData.category_id,
+          category: selectedCategory?.name || 'Others',
+          subcategory_id: taskData.subcategory_id,
+          is_premium: taskData.is_premium,
+          expires_at: taskData.expires_at ? new Date(taskData.expires_at).toISOString() : null,
+          reference_image_url: finalReferenceImageUrl,
+        }
       });
+
+      if (!res.success) {
+        toast.error(res.error || t('taskErrorMsg'));
+        setTaskSubmitting(false);
+        return;
+      }
 
       toast.success(t('taskSuccessMsg'));
       router.push('/dashboard/manage-tasks');
