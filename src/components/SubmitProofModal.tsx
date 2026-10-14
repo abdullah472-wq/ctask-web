@@ -6,10 +6,12 @@ import { X, Upload, Loader2, Link as LinkIcon, FileText } from 'lucide-react';
 import { supabase } from '@/utils/supabase';
 import { useTranslations } from 'next-intl';
 import { logActivity } from '@/utils/logger';
+import { submitTaskProofServerAction } from '@/app/actions/taskSlot';
 
 interface Task {
   is_premium?: boolean;
   id: string;
+  creator_id?: string;
   title: string;
   task_url: string;
   proof_instruction: string;
@@ -67,6 +69,11 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
 
   const handleSubmitProof = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (task.creator_id && task.creator_id === userId) {
+      toast.error('Unauthorized: Creators cannot submit proofs for their own tasks');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -91,18 +98,17 @@ export function SubmitProofModal({ task, userId, userPlan = 'basic', onClose, on
         proofImageUrl = publicUrlData.publicUrl;
       }
 
-      // Insert Submission
-      const { error: submitError } = await supabase
-        .from('task_submissions')
-        .insert({
-          task_id: task.id,
-          user_id: userId,
-          proof_text: proofText,
-          proof_image_url: proofImageUrl,
-          status: 'pending'
-        });
+      // Submit via Server Action with backend validation
+      const res = await submitTaskProofServerAction({
+        taskId: task.id,
+        userId,
+        proofText,
+        proofImageUrl: proofImageUrl || null,
+      });
 
-      if (submitError) throw submitError;
+      if (!res.success) {
+        throw new Error(res.error || t('errorMsg'));
+      }
 
       // Log worker activity
       await logActivity({

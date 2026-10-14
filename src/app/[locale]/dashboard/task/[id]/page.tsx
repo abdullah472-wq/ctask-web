@@ -10,10 +10,11 @@ import {
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
-import { startTaskReservation } from '@/app/actions/taskSlot';
+import { startTaskReservation, submitTaskProofServerAction } from '@/app/actions/taskSlot';
 
 interface Task {
   id: string;
+  creator_id?: string;
   title: string;
   description: string;
   task_url: string;
@@ -190,6 +191,10 @@ export default function TaskDetailsPage() {
 
   const handleStartTask = async () => {
     if (!userId || !task) return;
+    if (task.creator_id && task.creator_id === userId) {
+      toast.error(locale === 'bn' ? 'নিজের তৈরি করা কাজ আপনি নিজে করতে পারবেন না।' : 'You cannot perform your own task.');
+      return;
+    }
     setStartingTask(true);
     try {
       const res = await startTaskReservation(task.id, userId);
@@ -219,6 +224,10 @@ export default function TaskDetailsPage() {
   const handleSubmitProof = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId || !task) return;
+    if (task.creator_id && task.creator_id === userId) {
+      toast.error(locale === 'bn' ? 'নিজের তৈরি করা কাজ আপনি নিজে করতে পারবেন না।' : 'You cannot perform your own task.');
+      return;
+    }
 
     if (isExpired || timeLeft <= 0) {
       toast.error('Your slot reservation has expired! Please re-reserve.');
@@ -247,33 +256,17 @@ export default function TaskDetailsPage() {
         proofImageUrl = publicUrlData.publicUrl;
       }
 
-      // If user has an existing in_progress reservation, update it
-      if (existingSubmission?.id) {
-        const { error: updateError } = await supabase
-          .from('task_submissions')
-          .update({
-            status: 'pending',
-            proof_text: proofText,
-            proof_image_url: proofImageUrl || null,
-            submitted_at: new Date().toISOString(),
-          })
-          .eq('id', existingSubmission.id);
+      // Submit proof using secure Server Action (with backend creator validation)
+      const res = await submitTaskProofServerAction({
+        taskId: task.id,
+        userId,
+        proofText,
+        proofImageUrl: proofImageUrl || null,
+        submissionId: existingSubmission?.id,
+      });
 
-        if (updateError) throw updateError;
-      } else {
-        // Fallback upsert
-        const { error: submitError } = await supabase
-          .from('task_submissions')
-          .upsert({
-            task_id: task.id,
-            user_id: userId,
-            proof_text: proofText,
-            proof_image_url: proofImageUrl || null,
-            status: 'pending',
-            submitted_at: new Date().toISOString(),
-          });
-
-        if (submitError) throw submitError;
+      if (!res.success) {
+        throw new Error(res.error || t('errorMsg'));
       }
 
       toast.success(t('successMsg'));
@@ -325,6 +318,7 @@ export default function TaskDetailsPage() {
     statusColor = 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
   }
 
+  const isOwner = Boolean(task?.creator_id && userId && task.creator_id === userId);
   const isAlreadySubmitted = existingSubmission && ['pending', 'approved', 'rejected'].includes(existingSubmission.status);
   const isInProgress = existingSubmission?.status === 'in_progress';
 
@@ -446,8 +440,30 @@ export default function TaskDetailsPage() {
           <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm sticky top-28 space-y-6">
             <h2 className="text-xl font-bold">{t('submitWork')}</h2>
             
-            {/* Case 1: Already Submitted */}
-            {isAlreadySubmitted ? (
+            {/* Case 0: Creator Access Restriction */}
+            {isOwner ? (
+              <div className="bg-amber-500/10 border-2 border-amber-500/30 p-6 rounded-2xl text-center space-y-4">
+                <div className="w-14 h-14 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-7 h-7" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                    {locale === 'bn' ? 'নিজের তৈরি করা কাজ' : 'Own Created Task'}
+                  </h4>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm mt-2 leading-relaxed">
+                    {locale === 'bn' 
+                      ? 'নিজের তৈরি করা কাজ আপনি নিজে করতে পারবেন না।' 
+                      : 'You cannot perform your own task.'}
+                  </p>
+                </div>
+                <Link
+                  href="/dashboard/manage-tasks"
+                  className="block px-6 py-3 rounded-xl bg-gradient-to-r from-[#5A189A] to-[#7B2CBF] hover:opacity-95 text-white font-bold w-full transition-opacity shadow-md"
+                >
+                  {locale === 'bn' ? 'আমার কাজ পরিচালনা করুন' : 'Manage Your Tasks'}
+                </Link>
+              </div>
+            ) : isAlreadySubmitted ? (
               <div className="bg-indigo-500/10 border border-indigo-500/30 p-6 rounded-2xl text-center">
                 <CheckCircle className="w-10 h-10 text-indigo-500 mx-auto mb-3" />
                 <h4 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mb-2">{t('alreadySubmitted')}</h4>

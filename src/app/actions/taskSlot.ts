@@ -74,12 +74,20 @@ export async function startTaskReservation(taskId: string, userId: string) {
     // 2. Fetch task details
     const { data: task, error: taskErr } = await supabaseAdmin
       .from('tasks')
-      .select('id, total_slots, completed_slots, status, is_active')
+      .select('id, creator_id, total_slots, completed_slots, status, is_active')
       .eq('id', taskId)
       .single();
 
     if (taskErr || !task) {
       return { success: false, error: 'Task not found' };
+    }
+
+    // Security Check: Creator cannot perform own task
+    if (task.creator_id && task.creator_id === userId) {
+      return {
+        success: false,
+        error: 'Unauthorized: Creators cannot submit proofs for their own tasks',
+      };
     }
 
     if (!task.is_active || task.status !== 'approved') {
@@ -186,6 +194,81 @@ export async function startTaskReservation(taskId: string, userId: string) {
     };
   } catch (err: any) {
     console.error('startTaskReservation error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Server Action to submit proof for a task:
+ * - Validates that the current user is NOT the task creator.
+ * - Updates or inserts the submission row with status 'pending'.
+ */
+export async function submitTaskProofServerAction(payload: {
+  taskId: string;
+  userId: string;
+  proofText?: string;
+  proofImageUrl?: string | null;
+  submissionId?: string | null;
+}) {
+  const { taskId, userId, proofText, proofImageUrl, submissionId } = payload;
+  if (!taskId || !userId) {
+    return { success: false, error: 'Missing taskId or userId' };
+  }
+
+  try {
+    // 1. Fetch task details including creator_id
+    const { data: task, error: taskErr } = await supabaseAdmin
+      .from('tasks')
+      .select('id, creator_id, title')
+      .eq('id', taskId)
+      .single();
+
+    if (taskErr || !task) {
+      return { success: false, error: 'Task not found' };
+    }
+
+    // 2. Critical Security Check: Creator cannot submit proofs for own task
+    if (task.creator_id && task.creator_id === userId) {
+      throw new Error('Unauthorized: Creators cannot submit proofs for their own tasks');
+    }
+
+    // 3. Update existing reservation or insert new submission
+    const nowIso = new Date().toISOString();
+    if (submissionId) {
+      const { error: updateErr } = await supabaseAdmin
+        .from('task_submissions')
+        .update({
+          status: 'pending',
+          proof_text: proofText || '',
+          proof_image_url: proofImageUrl || null,
+          submitted_at: nowIso,
+        })
+        .eq('id', submissionId)
+        .eq('user_id', userId);
+
+      if (updateErr) throw updateErr;
+    } else {
+      const { error: insertErr } = await supabaseAdmin
+        .from('task_submissions')
+        .upsert({
+          task_id: taskId,
+          user_id: userId,
+          proof_text: proofText || '',
+          proof_image_url: proofImageUrl || null,
+          status: 'pending',
+          submitted_at: nowIso,
+        });
+
+      if (insertErr) throw insertErr;
+    }
+
+    revalidatePath(`/dashboard/task/${taskId}`);
+    revalidatePath('/dashboard/tasks');
+    revalidatePath('/dashboard/submissions');
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('submitTaskProofServerAction error:', err);
     return { success: false, error: err.message };
   }
 }

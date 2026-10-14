@@ -12,6 +12,7 @@ import { cleanupExpiredSlots } from '@/app/actions/taskSlot';
 
 interface Task {
   id: string;
+  creator_id?: string;
   title: string;
   description: string;
   task_url: string;
@@ -82,17 +83,27 @@ export default function AvailableTasksPage() {
       // ignore
     }
 
-    const { data: tasksData, error } = await supabase
+    let query = supabase
       .from('tasks')
       .select('*, category:task_categories(name), subcategory:task_subcategories(name), task_submissions(id, user_id, status, expires_at)')
       .eq('is_active', true)
       .eq('status', 'approved');
+
+    // Security: Filter out tasks created by the logged-in user
+    if (uid) {
+      query = query.neq('creator_id', uid);
+    }
+
+    const { data: tasksData, error } = await query;
       
     if (error) {
       console.error('Error fetching tasks:', error);
     } else if (tasksData) {
       const now = new Date();
       const availableTasks = tasksData.filter((t: any) => {
+        // Security safeguard: ensure user cannot perform own task
+        if (uid && t.creator_id === uid) return false;
+
         const inProgressCount = t.task_submissions?.filter((s: any) => 
           s.status === 'in_progress' && (!s.expires_at || new Date(s.expires_at) > now)
         ).length || 0;

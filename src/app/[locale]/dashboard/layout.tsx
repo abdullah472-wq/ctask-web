@@ -281,10 +281,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="flex items-center gap-3 sm:gap-6">
 
-            <div className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white dark:bg-white/5 border border-brand-primary/30 text-brand-primary font-mono font-medium shadow-sm text-sm sm:text-base">
-              <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
-              {profile?.wallet_balance?.toFixed(2) || '0.00'} ৳
-            </div>
+            {/* Highlighted Wallet Balance Pill */}
+            <Link
+              href="/dashboard/wallet"
+              title={t('walletWithdraw') || 'Wallet'}
+              className="group relative flex items-center gap-2 sm:gap-2.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-purple-500/10 via-brand-accent/20 to-purple-500/10 dark:from-brand-accent/20 dark:via-purple-600/30 dark:to-brand-accent/20 border-2 border-brand-accent/40 dark:border-brand-accent/60 shadow-[0_2px_12px_rgba(123,44,191,0.15)] dark:shadow-[0_0_20px_rgba(123,44,191,0.35)] hover:shadow-[0_0_25px_rgba(123,44,191,0.55)] hover:border-brand-accent dark:hover:border-purple-300 transition-all duration-300 hover:scale-105 active:scale-95"
+            >
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-tr from-brand-primary to-brand-accent text-white flex items-center justify-center shadow-md shadow-brand-accent/40 group-hover:scale-110 transition-transform">
+                <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+              </div>
+              <div className="flex items-center gap-1 font-mono">
+                <span className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white tracking-tight drop-shadow-sm">
+                  {profile?.wallet_balance !== undefined ? Number(profile.wallet_balance).toFixed(2) : '0.00'}
+                </span>
+                <span className="text-xs sm:text-sm font-extrabold text-brand-accent dark:text-purple-300">
+                  ৳
+                </span>
+              </div>
+            </Link>
 
             {/* Notification Bell */}
             {profile && <NotificationBell userId={profile.id} />}
